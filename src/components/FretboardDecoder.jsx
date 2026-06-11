@@ -1,0 +1,552 @@
+import React, { useMemo, useRef, useState } from "react";
+import {
+  ROOTS,
+  DEG,
+  INTERVALS,
+  SCALES,
+  CHORDS,
+  DIATONIC,
+  OPEN_MIDI,
+  FRETS,
+  noteNameToPc,
+  buildNoteNames,
+  midiToFreq,
+} from "../theory/engine.js";
+
+/**
+ * THE FRETBOARD DECODER
+ * The keystone of "AI Guitar Theory Coach".
+ *
+ * Philosophy (from the source blueprint):
+ *   Music is the language. The guitar is the dumb machine.
+ *   This tool decodes the machine through the six levels of pitch:
+ *   Silence -> Note (the Sun) -> Intervals -> Scales -> Chords -> Harmony.
+ *
+ * The theory primitives live in src/theory/engine.js — one engine
+ * drives every mode here, and the other product features (ear
+ * training, chord builder, number-system trainer) consume the same
+ * primitives.
+ */
+
+/* ---------------------------------------------------------------- */
+/* PALETTE                                                          */
+/* ---------------------------------------------------------------- */
+
+const C = {
+  paper: "#000000",          // AMOLED true black
+  ink: "#DCE6EC",            // primary light text
+  blue: "#3E9BD6",           // brighter blueprint blue (fills on black)
+  cyan: "#36C7E0",           // brighter cyan
+  sun: "#FF7A2E",            // the Sun (tonic) — pops on black
+  sunDeep: "#E0601B",
+  grid: "rgba(120,150,170,0.10)", // faint blueprint grid on black
+  gridBold: "rgba(120,150,170,0.16)",
+  line: "#3A4853",           // neck wires / borders, muted slate
+  red: "#E0533F",
+  muted: "#7C8A95",          // secondary text
+};
+
+// Map a "role" to fill / text colors.
+const ROLE_STYLE = {
+  root: { bg: C.sun, br: C.sunDeep, tx: "#FFF" },
+  third: { bg: C.cyan, br: "#1F7E96", tx: "#06222B" },
+  tone: { bg: C.blue, br: "#123F62", tx: "#EAF2F7" },
+  tritone: { bg: C.red, br: "#8E2A1D", tx: "#FFF" },
+  perfect: { bg: C.blue, br: "#123F62", tx: "#EAF2F7" },
+  note: { bg: "rgba(255,255,255,0.06)", br: C.line, tx: C.ink },
+  dim: { bg: "rgba(62,155,214,0.14)", br: "rgba(62,155,214,0.4)", tx: C.blue },
+};
+
+/* ---------------------------------------------------------------- */
+/* COMPONENT                                                        */
+/* ---------------------------------------------------------------- */
+
+export default function FretboardDecoder() {
+  const [root, setRoot] = useState("C");
+  const [mode, setMode] = useState("scale");
+  const [scaleId, setScaleId] = useState("major");
+  const [chordId, setChordId] = useState("maj");
+  const [degree, setDegree] = useState(0); // harmony mode
+  const [selected, setSelected] = useState(null); // {s, f}
+  const [muted, setMuted] = useState(false);
+
+  const audioRef = useRef(null);
+
+  const rootPc = noteNameToPc(root);
+  const names = useMemo(() => buildNoteNames(root), [root]);
+
+  /* ---- compute which pitch classes are highlighted + their role ---- */
+  const engine = useMemo(() => {
+    const map = new Map(); // pc -> { label, role }
+    let showAll = false;
+
+    const setPc = (pc, label, role) => map.set(((pc % 12) + 12) % 12, { label, role });
+
+    if (mode === "note") {
+      showAll = true;
+      for (let pc = 0; pc < 12; pc++) setPc(pc, names[pc], pc === rootPc ? "root" : "note");
+    } else if (mode === "interval") {
+      showAll = true;
+      for (let pc = 0; pc < 12; pc++) {
+        const s = (pc - rootPc + 12) % 12;
+        const iv = INTERVALS[s];
+        let role = "tone";
+        if (s === 0) role = "root";
+        else if (s === 6) role = "tritone";
+        else if (s === 5 || s === 7) role = "perfect";
+        else if (s === 3 || s === 4) role = "third";
+        setPc(pc, iv.ab, role);
+      }
+    } else if (mode === "scale") {
+      SCALES[scaleId].ints.forEach((iv) => {
+        const pc = (rootPc + iv) % 12;
+        let role = "tone";
+        if (iv === 0) role = "root";
+        else if (iv === 3 || iv === 4) role = "third";
+        setPc(pc, DEG[iv], role);
+      });
+    } else if (mode === "chord") {
+      const ch = CHORDS[chordId];
+      ch.ints.forEach((iv, i) => {
+        const pc = (rootPc + iv) % 12;
+        const lab = ch.labels[i];
+        let role = "tone";
+        if (lab === "1") role = "root";
+        else if (lab === "3" || lab === "b3") role = "third";
+        setPc(pc, lab, role);
+      });
+    } else if (mode === "harmony") {
+      const maj = SCALES.major.ints;
+      // dim the whole key
+      maj.forEach((iv) => {
+        const pc = (rootPc + iv) % 12;
+        if (!map.has(pc)) setPc(pc, DEG[iv], "dim");
+      });
+      // light the chosen diatonic triad (stacked thirds within the key)
+      const triadIvs = [maj[degree], maj[(degree + 2) % 7], maj[(degree + 4) % 7]];
+      triadIvs.forEach((iv, i) => {
+        const pc = (rootPc + iv) % 12;
+        const rel = (pc - rootPc + 12) % 12;
+        let role = "tone";
+        if (i === 0) role = "root";
+        else if (i === 1) role = "third";
+        setPc(pc, DEG[rel], role);
+      });
+    }
+    return { map, showAll };
+  }, [mode, scaleId, chordId, degree, root, rootPc, names]);
+
+  /* ---- audio ---- */
+  const play = (freq) => {
+    if (muted) return;
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = audioRef.current;
+      if (ctx.state === "suspended") ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const g = ctx.createGain();
+      const g2 = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      osc2.type = "sine";
+      osc2.frequency.value = freq * 2;
+      g2.gain.value = 0.28;
+      osc2.connect(g2);
+      g2.connect(g);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.26, now + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 1.3);
+      osc2.stop(now + 1.3);
+    } catch (e) {
+      /* audio unavailable — fail silently */
+    }
+  };
+
+  const handleClick = (s, f) => {
+    const midi = OPEN_MIDI[s] + f;
+    setSelected({ s, f });
+    play(midiToFreq(midi));
+  };
+
+  /* ---- geometry ---- */
+  const openW = 54;
+  const fretW = 60;
+  const rowH = 46;
+  const neckW = openW + FRETS * fretW;
+  const neckH = 6 * rowH;
+  const noteX = (f) => (f === 0 ? openW / 2 : openW + (f - 0.5) * fretW);
+  const noteY = (s) => (s + 0.5) * rowH;
+  const singleDots = [3, 5, 7, 9, 15];
+  const doubleDots = [12];
+
+  /* ---- selected note read-out ---- */
+  const readout = useMemo(() => {
+    if (!selected) return null;
+    const midi = OPEN_MIDI[selected.s] + selected.f;
+    const pc = midi % 12;
+    const semis = (pc - rootPc + 12) % 12;
+    const inSet = engine.map.has(pc) && engine.map.get(pc).role !== "dim";
+    const scaleIvs = mode === "harmony" ? SCALES.major.ints : SCALES[scaleId].ints;
+    const degIndex = scaleIvs.indexOf(semis);
+    return {
+      name: names[pc],
+      octave: Math.floor(midi / 12) - 1,
+      pc,
+      midi,
+      freq: midiToFreq(midi),
+      interval: INTERVALS[semis],
+      semis,
+      stringName: names[OPEN_MIDI[selected.s] % 12],
+      fret: selected.f,
+      stringNum: selected.s + 1,
+      degreeInScale: degIndex >= 0 ? DEG[semis] : null,
+      inSet,
+    };
+  }, [selected, rootPc, names, engine, mode, scaleId]);
+
+  const modes = [
+    { id: "note", label: "Notes", lvl: "Lv 2" },
+    { id: "interval", label: "Intervals", lvl: "Lv 3" },
+    { id: "scale", label: "Scales", lvl: "Lv 4" },
+    { id: "chord", label: "Chords", lvl: "Lv 5" },
+    { id: "harmony", label: "Harmony", lvl: "Lv 6" },
+  ];
+
+  /* ---- the "why" theory card for the active mode ---- */
+  const why = useMemo(() => {
+    if (mode === "note") return { t: "Level 2 — The Note", b: "Every note is measured against the Tonic (the Sun). The orange node is your gravity well; every other pitch is defined by its distance from it." };
+    if (mode === "interval") return { t: "Level 3 — Intervals", b: "An interval is the distance between two pitches in half-steps (frets). All scales and chords are just patterns of intervals. The red node is the tritone — the exact mathematical centre of the octave." };
+    if (mode === "scale") return { t: "Level 4 — Scales", b: `A scale is an engineered sequence of intervals, not a list of notes. ${SCALES[scaleId].name}: ${SCALES[scaleId].formula}. The cyan node is the 3rd — the tone that decides major vs. minor.` };
+    if (mode === "chord") return { t: "Level 5 — Chords", b: `Chords stack thirds vertically out of the scale. ${CHORDS[chordId].name}: ${CHORDS[chordId].formula}.` };
+    return { t: "Level 6 — Harmony", b: "Stack thirds on every degree of the major scale and you get a fixed map: I ii iii IV V vi vii°. The V chord carries the b7 of the key and pulls hardest back toward I (the gravitational pull of resolution)." };
+  }, [mode, scaleId, chordId]);
+
+  const triadName = useMemo(() => {
+    if (mode !== "harmony") return null;
+    const maj = SCALES.major.ints;
+    const tPc = (rootPc + maj[degree]) % 12;
+    const d = DIATONIC[degree];
+    return `${d.rn} — ${names[tPc]} ${d.q}`;
+  }, [mode, degree, rootPc, names]);
+
+  /* ---------------------------------------------------------------- */
+  /* RENDER                                                           */
+  /* ---------------------------------------------------------------- */
+
+  return (
+    <div className="bp-root">
+      <style>{`
+        .bp-root{
+          --paper:${C.paper};--ink:${C.ink};--blue:${C.blue};--cyan:${C.cyan};
+          --sun:${C.sun};--grid:${C.grid};--line:${C.line};--muted:${C.muted};
+          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+          color: var(--ink);
+          background:
+            linear-gradient(var(--grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+            var(--paper);
+          background-size: 24px 24px, 24px 24px;
+          padding: 22px;
+          border-radius: 8px;
+          box-shadow: inset 0 0 0 1.5px rgba(220,230,236,0.16);
+        }
+        .bp-mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; }
+        .bp-title{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+          font-size: 26px; font-weight: 700; letter-spacing: 1px; color: var(--ink); margin:0; }
+        .bp-sub{ font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); margin: 4px 0 0; letter-spacing:.3px; }
+        .bp-eyebrow{ font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: 2px;
+          text-transform: uppercase; color: var(--muted); }
+        .bp-btn{ font-family: ui-monospace, monospace; font-size: 12px; letter-spacing:.5px;
+          padding: 7px 12px; border: 1.5px solid var(--line); background: rgba(255,255,255,.05);
+          color: var(--ink); cursor: pointer; border-radius: 3px; transition: all .12s; }
+        .bp-btn:hover{ border-color: var(--ink); }
+        .bp-btn.on{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+        .bp-chip{ font-family: ui-monospace, monospace; font-size: 12px; padding: 6px 9px;
+          border: 1.5px solid var(--line); background: rgba(255,255,255,.05); cursor:pointer; border-radius:3px; }
+        .bp-chip.on{ background: var(--sun); border-color:${C.sunDeep}; color:#fff; }
+        .bp-card{ border: 1.5px solid var(--ink); background: rgba(255,255,255,.04);
+          border-radius: 4px; padding: 14px 16px; position: relative; }
+        .bp-tick{ position:absolute; width:9px; height:9px; border:1.5px solid var(--muted); }
+        .bp-node{ display:flex; align-items:center; justify-content:center;
+          font-family: ui-monospace, monospace; font-weight: 700; cursor: pointer;
+          border-radius: 999px; transition: transform .1s; user-select:none; }
+        .bp-node:hover{ transform: scale(1.12); }
+        .bp-row{ display:flex; flex-wrap: wrap; gap: 18px; }
+        .bp-fld{ display:flex; justify-content:space-between; gap:12px; padding:5px 0;
+          border-bottom: 1px dashed ${C.grid}; font-family: ui-monospace, monospace; font-size: 12.5px; }
+        .bp-fld span:first-child{ color: var(--muted); letter-spacing:.4px; }
+        .bp-fld span:last-child{ font-weight:700; }
+        @media (max-width: 760px){
+          .bp-title{ font-size: 20px; }
+          .bp-stack{ flex-direction: column; }
+        }
+      `}</style>
+
+      {/* ---- TITLE BLOCK ---- */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <div className="bp-eyebrow">AI Guitar Theory Coach · Feature 01</div>
+          <h1 className="bp-title">THE FRETBOARD DECODER</h1>
+          <p className="bp-sub">Music is the language. The guitar is the machine. — decode it.</p>
+        </div>
+        <button className="bp-btn" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>
+          {muted ? "♪ sound off" : "♪ sound on"}
+        </button>
+      </div>
+
+      {/* ---- CONTROLS ---- */}
+      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div>
+          <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Mode — the six levels of pitch</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {modes.map((m) => (
+              <button key={m.id} className={"bp-btn" + (mode === m.id ? " on" : "")} onClick={() => setMode(m.id)}>
+                {m.label} <span style={{ opacity: 0.6, fontSize: 10 }}>{m.lvl}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Root / Tonic — the Sun</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {ROOTS.map((r) => (
+              <button key={r} className={"bp-chip" + (r === root ? " on" : "")} onClick={() => setRoot(r)}>
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {mode === "scale" && (
+          <div>
+            <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Scale</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Object.entries(SCALES).map(([id, s]) => (
+                <button key={id} className={"bp-btn" + (scaleId === id ? " on" : "")} onClick={() => setScaleId(id)}>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mode === "chord" && (
+          <div>
+            <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Chord quality</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Object.entries(CHORDS).map(([id, ch]) => (
+                <button key={id} className={"bp-btn" + (chordId === id ? " on" : "")} onClick={() => setChordId(id)}>
+                  {root}
+                  {ch.sym} · {ch.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mode === "harmony" && (
+          <div>
+            <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Diatonic chord ({root} major key)</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {DIATONIC.map((d, i) => (
+                <button key={i} className={"bp-btn" + (degree === i ? " on" : "")} onClick={() => setDegree(i)}>
+                  {d.rn} <span style={{ opacity: 0.6, fontSize: 10 }}>{d.q}</span>
+                </button>
+              ))}
+            </div>
+            {triadName && <div className="bp-mono" style={{ marginTop: 8, color: C.sun, fontSize: 13, fontWeight: 700 }}>▶ {triadName}</div>}
+          </div>
+        )}
+      </div>
+
+      {/* ---- FRETBOARD ---- */}
+      <div style={{ marginTop: 20, overflowX: "auto", paddingBottom: 6 }}>
+        <div style={{ minWidth: neckW + 70, paddingLeft: 4 }}>
+          {/* top dimension line: octave range */}
+          <div style={{ position: "relative", height: 26, marginLeft: 64 }}>
+            <div style={{ position: "absolute", left: noteX(0), right: neckW - (openW + 12 * fretW), top: 12, height: 0, borderTop: `1.5px solid ${C.cyan}` }} />
+            <div style={{ position: "absolute", left: noteX(0), top: 6, width: 1, height: 12, background: C.cyan }} />
+            <div style={{ position: "absolute", left: openW + 12 * fretW, top: 6, width: 1, height: 12, background: C.cyan }} />
+            <div className="bp-mono" style={{ position: "absolute", left: noteX(0) + 40, top: 0, fontSize: 10, color: C.cyan, letterSpacing: 1 }}>
+              OCTAVE RANGE — 12 FRETS
+            </div>
+          </div>
+
+          {/* fret numbers */}
+          <div style={{ position: "relative", height: 18, marginLeft: 64 }}>
+            {Array.from({ length: FRETS + 1 }, (_, f) => (
+              <div key={f} className="bp-mono" style={{ position: "absolute", left: noteX(f) - 8, width: 16, textAlign: "center", fontSize: 11, color: f === 12 ? C.sun : C.muted, fontWeight: f === 12 ? 700 : 400 }}>
+                {f}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex" }}>
+            {/* string tuning labels */}
+            <div style={{ width: 64, position: "relative", height: neckH }}>
+              {OPEN_MIDI.map((m, s) => {
+                const oct = Math.floor(m / 12) - 1;
+                return (
+                  <div key={s} style={{ position: "absolute", top: noteY(s) - 13, right: 8, textAlign: "right" }}>
+                    <div className="bp-mono" style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>
+                      {names[m % 12]}
+                      {oct}
+                    </div>
+                    <div className="bp-mono" style={{ fontSize: 9, color: C.muted }}>{midiToFreq(m).toFixed(2)} Hz</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* the neck */}
+            <div style={{ position: "relative", width: neckW, height: neckH, background: "linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012))", border: `1.5px solid ${C.ink}`, borderLeft: "none" }}>
+              {/* nut */}
+              <div style={{ position: "absolute", left: openW, top: 0, width: 4, height: neckH, background: C.ink }} />
+              {/* fret wires */}
+              {Array.from({ length: FRETS }, (_, i) => i + 1).map((f) => (
+                <div key={f} style={{ position: "absolute", left: openW + f * fretW, top: 0, width: f === 12 ? 2 : 1, height: neckH, background: f === 12 ? C.cyan : C.line }} />
+              ))}
+              {/* string lines */}
+              {OPEN_MIDI.map((_, s) => (
+                <div key={s} style={{ position: "absolute", left: openW, right: 0, top: noteY(s), height: Math.max(1, (s) * 0.4 + 1), background: C.line, opacity: 0.7 }} />
+              ))}
+              {/* inlays */}
+              {singleDots.filter((d) => d <= FRETS).map((d) => (
+                <div key={"s" + d} style={{ position: "absolute", left: noteX(d) - 5, top: neckH / 2 - 5, width: 10, height: 10, borderRadius: 999, border: `1.5px solid ${C.line}`, opacity: 0.6 }} />
+              ))}
+              {doubleDots.filter((d) => d <= FRETS).map((d) => (
+                <React.Fragment key={"d" + d}>
+                  <div style={{ position: "absolute", left: noteX(d) - 5, top: neckH * 0.30 - 5, width: 10, height: 10, borderRadius: 999, border: `1.5px solid ${C.cyan}`, opacity: 0.7 }} />
+                  <div style={{ position: "absolute", left: noteX(d) - 5, top: neckH * 0.70 - 5, width: 10, height: 10, borderRadius: 999, border: `1.5px solid ${C.cyan}`, opacity: 0.7 }} />
+                </React.Fragment>
+              ))}
+
+              {/* notes */}
+              {OPEN_MIDI.map((open, s) =>
+                Array.from({ length: FRETS + 1 }, (_, f) => {
+                  const pc = (open + f) % 12;
+                  const hit = engine.map.get(pc);
+                  const show = engine.showAll || !!hit;
+                  if (!show) return null;
+                  const role = hit ? hit.role : "note";
+                  const label = hit ? hit.label : names[pc];
+                  const st = ROLE_STYLE[role] || ROLE_STYLE.note;
+                  const isSel = selected && selected.s === s && selected.f === f;
+                  const isRoot = role === "root";
+                  const size = isRoot ? 32 : 30;
+                  return (
+                    <button
+                      key={s + "-" + f}
+                      className="bp-node"
+                      onClick={() => handleClick(s, f)}
+                      title={`${names[pc]} · string ${s + 1} fret ${f}`}
+                      style={{
+                        position: "absolute",
+                        left: noteX(f) - size / 2,
+                        top: noteY(s) - size / 2,
+                        width: size,
+                        height: size,
+                        background: st.bg,
+                        color: st.tx,
+                        border: `2px solid ${st.br}`,
+                        fontSize: label.length > 2 ? 10 : 12,
+                        boxShadow: isRoot ? `0 0 0 3px rgba(255,122,46,.32)` : "none",
+                        outline: isSel ? `2px dashed ${C.ink}` : "none",
+                        outlineOffset: 2,
+                        zIndex: isSel ? 5 : 2,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ---- LEGEND ---- */}
+      <div style={{ marginTop: 14, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <Legend color={C.sun} label="Root / Tonic (the Sun)" />
+        <Legend color={C.cyan} label="The 3rd (major / minor decider)" />
+        <Legend color={C.blue} label="Chord / scale tone" />
+        {mode === "interval" && <Legend color={C.red} label="Tritone (centre of the octave)" />}
+        {mode === "harmony" && <Legend color={"rgba(28,92,140,0.3)"} label="Other notes in the key" />}
+      </div>
+
+      {/* ---- READOUT + WHY ---- */}
+      <div className="bp-row bp-stack" style={{ marginTop: 18, alignItems: "stretch" }}>
+        {/* spec readout */}
+        <div className="bp-card" style={{ flex: "1 1 280px", minWidth: 260 }}>
+          <Ticks />
+          <div className="bp-eyebrow" style={{ marginBottom: 8 }}>Spec readout</div>
+          {!readout ? (
+            <div className="bp-mono" style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+              Tap any node on the neck to measure it. Every pitch is defined by its distance from the Tonic.
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+                <div className="bp-mono" style={{ fontSize: 30, fontWeight: 700, color: readout.inSet ? C.sun : C.ink }}>
+                  {readout.name}
+                  <span style={{ fontSize: 14, color: C.muted }}>{readout.octave}</span>
+                </div>
+                {readout.degreeInScale && (
+                  <span className="bp-mono" style={{ fontSize: 13, padding: "2px 8px", border: `1.5px solid ${C.sun}`, color: C.sun, borderRadius: 3 }}>
+                    degree {readout.degreeInScale}
+                  </span>
+                )}
+              </div>
+              <div className="bp-fld"><span>Interval from root</span><span>{readout.interval.name} ({readout.interval.ab})</span></div>
+              <div className="bp-fld"><span>Distance</span><span>{readout.semis} semitones / {readout.semis} frets</span></div>
+              <div className="bp-fld"><span>Frequency</span><span>{readout.freq.toFixed(2)} Hz</span></div>
+              <div className="bp-fld"><span>Position</span><span>string {readout.stringNum} · fret {readout.fret}</span></div>
+              <div className="bp-fld"><span>MIDI / pitch class</span><span>{readout.midi} · {readout.pc}</span></div>
+              <div className="bp-fld" style={{ borderBottom: "none" }}><span>Emotional colour</span><span style={{ fontWeight: 400, color: C.muted }}>{readout.interval.feel}</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* why card */}
+        <div className="bp-card" style={{ flex: "1 1 280px", minWidth: 260, background: "rgba(62,155,214,.10)" }}>
+          <Ticks />
+          <div className="bp-eyebrow" style={{ marginBottom: 8, color: C.blue }}>The "why" — play dumb, then explain it</div>
+          <div className="bp-mono" style={{ fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 6 }}>{why.t}</div>
+          <div style={{ fontSize: 13.5, lineHeight: 1.65, color: C.ink }}>{why.b}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Legend({ color, label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+      <span style={{ width: 16, height: 16, borderRadius: 999, background: color, border: `2px solid rgba(255,255,255,.2)`, display: "inline-block" }} />
+      <span className="bp-mono" style={{ fontSize: 11.5, color: C.ink }}>{label}</span>
+    </div>
+  );
+}
+
+function Ticks() {
+  const base = { position: "absolute", width: 8, height: 8, borderColor: C.muted };
+  return (
+    <>
+      <span style={{ ...base, top: 5, left: 5, borderTop: "1.5px solid", borderLeft: "1.5px solid" }} />
+      <span style={{ ...base, top: 5, right: 5, borderTop: "1.5px solid", borderRight: "1.5px solid" }} />
+      <span style={{ ...base, bottom: 5, left: 5, borderBottom: "1.5px solid", borderLeft: "1.5px solid" }} />
+      <span style={{ ...base, bottom: 5, right: 5, borderBottom: "1.5px solid", borderRight: "1.5px solid" }} />
+    </>
+  );
+}
