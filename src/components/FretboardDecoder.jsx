@@ -45,6 +45,18 @@ const ROLE_STYLE = {
   char: { bg: C.violet, br: "#7A52C7", tx: "#1A1030" },
 };
 
+// Roy G Biv — one colour per scale degree (1-7); the root (1) is red.
+const RAINBOW = {
+  1: { bg: "#E0533F", tx: "#fff",    br: "#8E2A1D" }, // red  — root
+  2: { bg: "#FF7A2E", tx: "#2A1300", br: "#C85A18" }, // orange
+  3: { bg: "#E8C84A", tx: "#2A2300", br: "#B59A1E" }, // yellow
+  4: { bg: "#46B36B", tx: "#04220F", br: "#2C7E48" }, // green
+  5: { bg: "#3E9BD6", tx: "#04202E", br: "#1F6FA0" }, // blue
+  6: { bg: "#6C7BE0", tx: "#0A0E2A", br: "#3F4DB0" }, // indigo
+  7: { bg: "#B58CFF", tx: "#1A1030", br: "#7A52C7" }, // violet
+};
+const degBase = (label) => { const m = String(label).match(/[1-7]/); return m ? Number(m[0]) : null; };
+
 // The 7 diatonic modes by parent-major degree. `char` = semitones from the
 // mode's own tonic to its characteristic (flavour) note.
 const MODE_BY_DEGREE = [
@@ -65,6 +77,7 @@ const PROGRESSIONS = {
   "1564": { name: "I-V-vi-IV", degrees: [0, 4, 5, 3] },
   "1645": { name: "I-vi-IV-V", degrees: [0, 5, 3, 4] },
   "251":  { name: "ii-V-I", degrees: [1, 4, 0] },
+  "14":   { name: "I-IV (mode jam)", degrees: [0, 3] },
 };
 
 export default function FretboardDecoder() {
@@ -85,6 +98,9 @@ export default function FretboardDecoder() {
   const [fit, setFit] = useState(false);
   const wrapRef = useRef(null);
   const [wrapW, setWrapW] = useState(0);
+  const [rainbow, setRainbow] = useState(false);
+  const [boxOn, setBoxOn] = useState(false);
+  const [boxStart, setBoxStart] = useState(0);
 
   const audioRef = useRef(null);
 
@@ -379,6 +395,14 @@ export default function FretboardDecoder() {
             ⇅ {stringOrder}
           </button>
           <button className={"bp-btn" + (fit ? " on" : "")} onClick={() => setFit((v) => !v)} aria-pressed={fit} title="Compress fret spacing to fit the screen">⤢ fit</button>
+          <button className={"bp-btn" + (rainbow ? " on" : "")} onClick={() => setRainbow((v) => !v)} aria-pressed={rainbow} title="Colour each scale degree (Roy G Biv); root = red">🌈 colors</button>
+          <button className={"bp-btn" + (boxOn ? " on" : "")} onClick={() => setBoxOn((v) => !v)} aria-pressed={boxOn} title="Lock to one 5-fret box (stay in position)">▢ box</button>
+          {boxOn && (
+            <label className="bp-btn" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "default" }}>
+              box @ {boxStart}
+              <input type="range" min="0" max={FRETS - 4} value={boxStart} onChange={(e) => setBoxStart(Number(e.target.value))} />
+            </label>
+          )}
           <button className="bp-btn" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>
             {muted ? "♪ sound off" : "♪ sound on"}
           </button>
@@ -568,15 +592,23 @@ export default function FretboardDecoder() {
                 </React.Fragment>
               ))}
 
+              {boxOn && (
+                <div style={{ position: "absolute", top: 0, height: neckH, zIndex: 1, pointerEvents: "none",
+                  left: boxStart === 0 ? 0 : openW + (boxStart - 1) * fretW,
+                  width: (openW + (boxStart + 4) * fretW) - (boxStart === 0 ? 0 : openW + (boxStart - 1) * fretW),
+                  background: "rgba(255,255,255,0.05)", border: `1px dashed ${C.muted}`, borderRadius: 4 }} />
+              )}
               {OPEN_MIDI.map((open, s) =>
                 Array.from({ length: FRETS + 1 }, (_, f) => {
                   const pc = (open + f) % 12;
                   const hit = engine.map.get(pc);
-                  const show = engine.showAll || !!hit;
+                  const inBox = !boxOn || (f >= boxStart && f <= boxStart + 4);
+                  const show = (engine.showAll || !!hit) && inBox;
                   if (!show) return null;
                   const role = hit ? hit.role : "note";
                   const label = hit ? hit.label : names[pc];
-                  const st = ROLE_STYLE[role] || ROLE_STYLE.note;
+                  const rbBase = rainbow && mode !== "note" && mode !== "interval" && role !== "dim" ? degBase(label) : null;
+                  const st = rbBase && RAINBOW[rbBase] ? RAINBOW[rbBase] : (ROLE_STYLE[role] || ROLE_STYLE.note);
                   const isSel = selected && selected.s === s && selected.f === f;
                   const isRoot = role === "root";
                   const baseSize = Math.max(18, Math.min(30, fretW - 8));
@@ -601,6 +633,18 @@ export default function FretboardDecoder() {
         {mode === "interval" && <Legend color={C.red} label="Tritone (centre of the octave)" />}
         {mode === "harmony" && <Legend color={"rgba(28,92,140,0.3)"} label="Other notes in the key" />}
         {isModal && <Legend color={C.violet} label="Characteristic note (the mode's flavour)" />}
+        {rainbow && (
+          <span className="bp-mono" style={{ fontSize: 11, color: C.muted }}>
+            Roy G Biv —{" "}
+            <span style={{ color: "#E0533F", fontWeight: 700 }}>1</span>{" "}
+            <span style={{ color: "#FF7A2E", fontWeight: 700 }}>2</span>{" "}
+            <span style={{ color: "#E8C84A", fontWeight: 700 }}>3</span>{" "}
+            <span style={{ color: "#46B36B", fontWeight: 700 }}>4</span>{" "}
+            <span style={{ color: "#3E9BD6", fontWeight: 700 }}>5</span>{" "}
+            <span style={{ color: "#6C7BE0", fontWeight: 700 }}>6</span>{" "}
+            <span style={{ color: "#B58CFF", fontWeight: 700 }}>7</span>
+          </span>
+        )}
       </div>
 
       <div className="bp-row bp-stack" style={{ marginTop: 18, alignItems: "stretch" }}>
