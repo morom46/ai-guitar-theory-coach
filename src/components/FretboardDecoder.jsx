@@ -82,6 +82,9 @@ export default function FretboardDecoder() {
   const [playing, setPlaying] = useState(false);
   const [chordIdx, setChordIdx] = useState(0);
   const [stepMs, setStepMs] = useState(1700);
+  const [fit, setFit] = useState(false);
+  const wrapRef = useRef(null);
+  const [wrapW, setWrapW] = useState(0);
 
   const audioRef = useRef(null);
 
@@ -239,20 +242,33 @@ export default function FretboardDecoder() {
     if (mode !== "progression" && playing) setPlaying(false);
   }, [mode, playing]);
 
-  const openW = 54;
-  const fretW = 60;
+  // Measure the panel so "fit to width" can size the frets to the screen.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setWrapW(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const labelW = 64;
+  const openW = fit ? 30 : 54;
+  const baseFretW = 60;
+  const fretW = fit && wrapW ? Math.max(24, Math.min(baseFretW, (wrapW - labelW - openW - 14) / FRETS)) : baseFretW;
   const rowH = 46;
   const neckW = openW + FRETS * fretW;
   const neckH = 6 * rowH;
   const noteX = (f) => (f === 0 ? openW / 2 : openW + (f - 0.5) * fretW);
   const noteY = (s) => (s + 0.5) * rowH;
-  const dispY = (s) => noteY(flipStrings ? OPEN_MIDI.length - 1 - s : s);
-  const stringOrder = (flipStrings ? [...OPEN_MIDI].reverse() : OPEN_MIDI)
+  const dispY = (s) => noteY(flipStrings ? s : OPEN_MIDI.length - 1 - s);
+  const stringOrder = (flipStrings ? OPEN_MIDI : [...OPEN_MIDI].reverse())
     .map((m) => names[m % 12][0])
     .join("");
   const slide = "top 0.4s cubic-bezier(0.45, 0, 0.15, 1)";
-  const singleDots = [3, 5, 7, 9, 15];
-  const doubleDots = [12];
+  const singleDots = [3, 5, 7, 9, 15, 17, 19, 21];
+  const doubleDots = [12, 24];
 
   const readout = useMemo(() => {
     if (!selected) return null;
@@ -362,6 +378,7 @@ export default function FretboardDecoder() {
           <button className={"bp-btn" + (flipStrings ? " on" : "")} onClick={() => setFlipStrings((v) => !v)} aria-pressed={flipStrings} title="Flip the vertical order of the strings">
             ⇅ {stringOrder}
           </button>
+          <button className={"bp-btn" + (fit ? " on" : "")} onClick={() => setFit((v) => !v)} aria-pressed={fit} title="Compress fret spacing to fit the screen">⤢ fit</button>
           <button className="bp-btn" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>
             {muted ? "♪ sound off" : "♪ sound on"}
           </button>
@@ -505,8 +522,8 @@ export default function FretboardDecoder() {
         )}
       </div>
 
-      <div style={{ marginTop: 20, overflowX: "auto", paddingBottom: 6 }}>
-        <div style={{ minWidth: neckW + 70, paddingLeft: 4 }}>
+      <div ref={wrapRef} style={{ marginTop: 20, overflowX: "auto", paddingBottom: 6 }}>
+        <div style={{ minWidth: fit ? "auto" : neckW + 70, paddingLeft: 4 }}>
           <div style={{ position: "relative", height: 26, marginLeft: 64 }}>
             <div style={{ position: "absolute", left: noteX(0), right: neckW - (openW + 12 * fretW), top: 12, height: 0, borderTop: `1.5px solid ${C.cyan}` }} />
             <div style={{ position: "absolute", left: noteX(0), top: 6, width: 1, height: 12, background: C.cyan }} />
@@ -516,7 +533,7 @@ export default function FretboardDecoder() {
 
           <div style={{ position: "relative", height: 18, marginLeft: 64 }}>
             {Array.from({ length: FRETS + 1 }, (_, f) => (
-              <div key={f} className="bp-mono" style={{ position: "absolute", left: noteX(f) - 8, width: 16, textAlign: "center", fontSize: 11, color: f === 12 ? C.sun : C.muted, fontWeight: f === 12 ? 700 : 400 }}>{f}</div>
+              <div key={f} className="bp-mono" style={{ position: "absolute", left: noteX(f) - 8, width: 16, textAlign: "center", fontSize: 11, color: f !== 0 && f % 12 === 0 ? C.sun : C.muted, fontWeight: f !== 0 && f % 12 === 0 ? 700 : 400 }}>{f}</div>
             ))}
           </div>
 
@@ -536,7 +553,7 @@ export default function FretboardDecoder() {
             <div style={{ position: "relative", width: neckW, height: neckH, background: "linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012))", border: `1.5px solid ${C.ink}`, borderLeft: "none" }}>
               <div style={{ position: "absolute", left: openW, top: 0, width: 4, height: neckH, background: C.ink }} />
               {Array.from({ length: FRETS }, (_, i) => i + 1).map((f) => (
-                <div key={f} style={{ position: "absolute", left: openW + f * fretW, top: 0, width: f === 12 ? 2 : 1, height: neckH, background: f === 12 ? C.cyan : C.line }} />
+                <div key={f} style={{ position: "absolute", left: openW + f * fretW, top: 0, width: f % 12 === 0 ? 2 : 1, height: neckH, background: f % 12 === 0 ? C.cyan : C.line }} />
               ))}
               {OPEN_MIDI.map((_, s) => (
                 <div key={s} style={{ position: "absolute", left: openW, right: 0, top: dispY(s), height: Math.max(1, (s) * 0.4 + 1), background: C.line, opacity: 0.7, transition: slide }} />
@@ -562,7 +579,8 @@ export default function FretboardDecoder() {
                   const st = ROLE_STYLE[role] || ROLE_STYLE.note;
                   const isSel = selected && selected.s === s && selected.f === f;
                   const isRoot = role === "root";
-                  const size = isRoot ? 32 : 30;
+                  const baseSize = Math.max(18, Math.min(30, fretW - 8));
+                  const size = isRoot ? baseSize + 2 : baseSize;
                   return (
                     <button key={s + "-" + f} className="bp-node" onClick={() => handleClick(s, f)} title={`${names[pc]} · string ${s + 1} fret ${f}`}
                       style={{ position: "absolute", left: noteX(f) - size / 2, top: dispY(s) - size / 2, width: size, height: size, background: st.bg, color: st.tx, border: `2px solid ${st.br}`, fontSize: label.length > 2 ? 10 : 12, boxShadow: isRoot ? `0 0 0 3px rgba(255,122,46,.32)` : "none", outline: isSel ? `2px dashed ${C.ink}` : "none", outlineOffset: 2, zIndex: isSel ? 5 : 2 }}>

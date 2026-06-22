@@ -79,7 +79,7 @@ export const DIATONIC = [
 
 // Standard tuning, string 1 (high E, top) -> string 6 (low E, bottom).
 export const OPEN_MIDI = [64, 59, 55, 50, 45, 40];
-export const FRETS = 15;
+export const FRETS = 24;
 
 export function noteNameToPc(name) {
   let pc = LETTER_PC[name[0]];
