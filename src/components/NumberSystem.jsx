@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { ROOTS, SCALES, DIATONIC, buildNoteNames, noteNameToPc, midiToFreq } from "../theory/engine.js";
+import PracticePanel from "./PracticePanel.jsx";
 
 /**
  * NUMBER SYSTEM — Feature 04 of "AI Guitar Theory Coach".
@@ -255,6 +256,8 @@ export default function NumberSystem() {
           )}
         </>
       )}
+
+      <PracticePanel keyLabel={key} tonality="major" keyId={key + "maj"} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { ROOTS, CHORDS, INTERVALS, DEG, OPEN_MIDI, midiToFreq, noteNameToPc, buildNoteNames } from "../theory/engine.js";
+import PracticePanel from "./PracticePanel.jsx";
 
 /**
  * CHORD BUILDER — Feature 03 of "AI Guitar Theory Coach".
@@ -47,6 +48,8 @@ export default function ChordBuilder() {
   const audioRef = useRef(null);
 
   const ch = CHORDS[chordId];
+  const isMinor = ["min", "min7", "dim", "m7b5"].includes(chordId);
+  const tonality = isMinor ? "minor" : "major";
   const names = useMemo(() => buildNoteNames(root), [root]);
   const rootPc = noteNameToPc(root);
 
@@ -269,6 +272,8 @@ export default function ChordBuilder() {
           </div>
         </div>
       </div>
+
+      <PracticePanel keyLabel={root} tonality={tonality} keyId={root + (isMinor ? "min" : "maj")} />
     </div>
   );
 }
