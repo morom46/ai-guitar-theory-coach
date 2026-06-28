@@ -12,9 +12,10 @@ import {
   buildNoteNames,
   midiToFreq,
 } from "../theory/engine.js";
+import SpotifyRecent from "./SpotifyRecent.jsx";
 
 /**
- * THE FRETBOARD DECODER — keystone of "AI Guitar Theory Coach".
+ * THE FRETBOARD DECODER — keystone of "Guitar Theory Coach".
  * Music is the language. The guitar is the dumb machine.
  * Decodes pitch: Note (the Sun) -> Intervals -> Scales -> Chords -> Harmony -> Modes.
  */
@@ -69,9 +70,6 @@ const MODE_BY_DEGREE = [
   { id: "locrian",    name: "Locrian",    quality: "diminished", char: 6,  charName: "b5" },
 ];
 
-// Brightness spectrum (brightest -> darkest); each step flats one note.
-const BRIGHTNESS_ORDER = [3, 0, 4, 1, 5, 2, 6]; // Lyd, Ion, Mix, Dor, Aeo, Phr, Loc
-
 const PROGRESSIONS = {
   "145":  { name: "I-IV-V", degrees: [0, 3, 4] },
   "1564": { name: "I-V-vi-IV", degrees: [0, 4, 5, 3] },
@@ -101,6 +99,7 @@ export default function FretboardDecoder() {
   const [rainbow, setRainbow] = useState(false);
   const [boxOn, setBoxOn] = useState(false);
   const [boxStart, setBoxStart] = useState(0);
+  const [soloPenta, setSoloPenta] = useState(true);
 
   const audioRef = useRef(null);
 
@@ -338,6 +337,19 @@ export default function FretboardDecoder() {
     return `${d.rn} - ${names[tPc]} ${d.q}`;
   }, [mode, degree, rootPc, names]);
 
+  // Load a Spotify-detected key (e.g. "Em", "F#m", "C") onto the fretboard.
+  const handlePickKey = (keyStr) => {
+    if (!keyStr) return;
+    const minor = /m$/.test(keyStr) && !/maj$/i.test(keyStr);
+    const token = keyStr.replace(/m$/, "").trim();
+    if (!/^[A-Ga-g]/.test(token)) return;
+    const pc = noteNameToPc(token);
+    const rootName = ROOTS.find((r) => noteNameToPc(r) === pc) || "C";
+    setRoot(rootName);
+    setMode("scale");
+    setScaleId(soloPenta ? (minor ? "minorPent" : "majorPent") : (minor ? "aeolian" : "major"));
+  };
+
   return (
     <div className="bp-root">
       <style>{`
@@ -376,6 +388,21 @@ export default function FretboardDecoder() {
           transition: transform .1s, top .4s cubic-bezier(.45,0,.15,1),
             background-color .35s ease, border-color .35s ease, color .3s ease, box-shadow .35s ease; }
         .bp-node:hover{ transform: scale(1.12); }
+        .bp-info{ position: relative; display: inline-flex; cursor: help; margin-left: 5px; vertical-align: middle; }
+        .bp-info-dot{ width: 14px; height: 14px; border-radius: 999px; border: 1px solid var(--muted); color: var(--muted);
+          font-size: 9px; font-weight: 700; font-style: italic; display: flex; align-items: center; justify-content: center;
+          font-family: ui-monospace, monospace; transition: all .15s; }
+        .bp-info:hover .bp-info-dot, .bp-info:focus-within .bp-info-dot{ border-color: var(--ink); color: var(--ink); }
+        .bp-info-pop{ position: absolute; bottom: calc(100% + 9px); left: 50%; z-index: 60;
+          transform: translate(-50%, 7px) scale(.96); transform-origin: bottom center;
+          width: max-content; max-width: 230px; background: #0c1116; color: var(--ink);
+          border: 1.5px solid var(--line); border-radius: 6px; padding: 9px 11px;
+          font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.55; letter-spacing: .2px;
+          text-transform: none; box-shadow: 0 8px 24px rgba(0,0,0,.55); white-space: normal;
+          opacity: 0; pointer-events: none; transition: opacity .17s ease, transform .17s cubic-bezier(.34,1.4,.5,1); }
+        .bp-info-pop::after{ content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+          border:5px solid transparent; border-top-color: var(--line); }
+        .bp-info-pop.on{ opacity: 1; transform: translate(-50%, 0) scale(1); }
         .bp-row{ display:flex; flex-wrap: wrap; gap: 18px; }
         .bp-fld{ display:flex; justify-content:space-between; gap:12px; padding:5px 0;
           border-bottom: 1px dashed ${C.grid}; font-family: ui-monospace, monospace; font-size: 12.5px; }
@@ -386,7 +413,7 @@ export default function FretboardDecoder() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div className="bp-eyebrow">AI Guitar Theory Coach · Feature 01</div>
+          <div className="bp-eyebrow">Guitar Theory Coach · 01</div>
           <h1 className="bp-title">THE FRETBOARD DECODER</h1>
           <p className="bp-sub">Music is the language. The guitar is the machine. — decode it.</p>
         </div>
@@ -411,7 +438,7 @@ export default function FretboardDecoder() {
 
       <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
-          <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Mode — the levels of pitch</div>
+          <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Mode — the levels of pitch<Info text="Notes/Intervals show all 12 pitches. Scales lights a scale to solo over. Modes & Progression keep the SAME notes and just move the root." /></div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {modes.map((m) => (
               <button key={m.id} className={"bp-btn" + (mode === m.id ? " on" : "")} onClick={() => setMode(m.id)}>
@@ -423,7 +450,7 @@ export default function FretboardDecoder() {
 
         {!isModal && (
           <div>
-            <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Root / Tonic — the Sun</div>
+            <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Root / Tonic — the Sun<Info text="The key centre — every note number and colour is measured from this root. Try the 🌈 colors and ▢ box toggles up top." /></div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {ROOTS.map((r) => (
                 <button key={r} className={"bp-chip" + (r === root ? " on" : "")} onClick={() => setRoot(r)}>{r}</button>
@@ -481,15 +508,15 @@ export default function FretboardDecoder() {
               </div>
             </div>
             <div>
-              <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Mode — move the nucleus · bright → dark, each step flats one more note</div>
+              <div className="bp-eyebrow" style={{ marginBottom: 6 }}>Mode — move the nucleus · in order, Ionian → Locrian (1–7)</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {BRIGHTNESS_ORDER.map((deg, i) => {
+                {[0, 1, 2, 3, 4, 5, 6].map((deg) => {
                   const m = MODE_BY_DEGREE[deg];
                   const tPc = (parentPc + SCALES.major.ints[deg]) % 12;
                   return (
-                    <button key={m.id} className={"bp-btn" + (tonicDegree === deg ? " on" : "")} onClick={() => setTonicDegree(deg)} title={`${m.name} — ${m.quality}, characteristic note ${m.charName}`}>
+                    <button key={m.id} className={"bp-btn" + (tonicDegree === deg ? " on" : "")} onClick={() => setTonicDegree(deg)} title={`Mode ${deg + 1} — ${m.name}: ${m.quality}, characteristic note ${m.charName}`}>
+                      <span style={{ opacity: 0.5, fontSize: 10, marginRight: 3 }}>{deg + 1}</span>
                       {parentNames[tPc]} {m.name}
-                      <span style={{ opacity: 0.5, fontSize: 10, letterSpacing: 1 }}> {"♭".repeat(i)}</span>
                     </button>
                   );
                 })}
@@ -682,7 +709,32 @@ export default function FretboardDecoder() {
           <div style={{ fontSize: 13.5, lineHeight: 1.65, color: C.ink }}>{why.b}</div>
         </div>
       </div>
+
+      <div style={{ marginTop: 18 }}>
+        <div className="bp-eyebrow" style={{ marginBottom: 8, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+          Practice from your Spotify
+          <Info text="Tap ▸ practice on a song to load its key onto the fretboard in Scales mode — an instant backdrop to solo over." />
+          <span style={{ marginLeft: 10 }}>· soloing scale:</span>
+          <button className={"bp-btn" + (soloPenta ? " on" : "")} style={{ padding: "3px 9px", fontSize: 10 }} onClick={() => setSoloPenta((v) => !v)}>
+            {soloPenta ? "pentatonic" : "full scale"}
+          </button>
+        </div>
+        <SpotifyRecent onPickKey={handlePickKey} />
+      </div>
     </div>
+  );
+}
+
+function Info({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="bp-info" tabIndex={0}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+      onBlur={() => setOpen(false)}>
+      <span className="bp-info-dot">i</span>
+      <span className={"bp-info-pop" + (open ? " on" : "")}>{text}</span>
+    </span>
   );
 }
 

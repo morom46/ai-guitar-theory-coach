@@ -4,13 +4,12 @@ import EarTrainer from "./components/EarTrainer.jsx";
 import ChordBuilder from "./components/ChordBuilder.jsx";
 import NumberSystem from "./components/NumberSystem.jsx";
 
-// Product roadmap — every feature consumes the same theory engine
-// (src/theory/engine.js). `id` maps to the component rendered below.
-const FEATURES = [
-  { num: "01", id: "decoder", label: "Fretboard Decoder", ready: true },
-  { num: "02", id: "ear", label: "Ear Trainer", ready: true },
-  { num: "03", id: "chord", label: "Chord Builder", ready: true },
-  { num: "04", id: "numbers", label: "Number System", ready: true },
+// The three numbered "lessons". Ear Trainer is a practice drill, set apart as
+// an icon below. Every feature reads from the one engine (src/theory/engine.js).
+const LESSONS = [
+  { num: "01", id: "decoder", label: "Fretboard Decoder" },
+  { num: "02", id: "chord", label: "Chord Builder" },
+  { num: "03", id: "numbers", label: "Number System" },
 ];
 
 export default function App() {
@@ -29,30 +28,38 @@ export default function App() {
         <div className="shell-brand">
           <span className="shell-sun" aria-hidden="true" />
           <div>
-            <div className="shell-title">AI GUITAR THEORY COACH</div>
+            <div className="shell-title">GUITAR THEORY COACH</div>
             <div className="shell-sub">decode the machine · six levels of pitch</div>
           </div>
         </div>
-        <nav className="shell-nav" aria-label="Features">
-          {FEATURES.map((f) => (
+        <nav className="shell-nav" aria-label="Sections">
+          {LESSONS.map((f) => (
             <button
-              key={f.num}
+              key={f.id}
               className={"shell-tab" + (active === f.id ? " on" : "")}
-              disabled={!f.ready}
-              onClick={() => f.ready && setActive(f.id)}
-              title={f.ready ? undefined : "Coming soon"}
+              onClick={() => setActive(f.id)}
+              aria-current={active === f.id ? "page" : undefined}
             >
               <span className="shell-num">{f.num}</span> {f.label}
-              {!f.ready && <span className="shell-soon">soon</span>}
             </button>
           ))}
+          <span className="shell-div" aria-hidden="true" />
+          <button
+            className={"shell-icon" + (active === "ear" ? " on" : "")}
+            onClick={() => setActive("ear")}
+            title="Ear Trainer — listen & identify"
+            aria-label="Ear Trainer"
+            aria-current={active === "ear" ? "page" : undefined}
+          >
+            🎧
+          </button>
         </nav>
       </header>
 
       <main className="shell-main">{render()}</main>
 
       <footer className="shell-foot">
-        One theory engine drives everything — every feature consumes the same
+        One theory engine drives everything — every section consumes the same
         primitives from src/theory/engine.js.
       </footer>
     </div>

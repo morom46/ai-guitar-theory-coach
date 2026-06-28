@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { INTERVALS, DEG, SCALES, midiToFreq } from "../theory/engine.js";
 
 /**
- * EAR TRAINER — Feature 02 of "AI Guitar Theory Coach".
+ * EAR TRAINER — Feature 02 of "Guitar Theory Coach".
  * Same theory engine, now pointed at the ear instead of the eye.
  *
  * Two drills:
@@ -165,7 +165,7 @@ export default function EarTrainer() {
         .et-big:hover{ filter: brightness(1.08); }
       `}</style>
 
-      <div className="et-eyebrow">AI Guitar Theory Coach · Feature 02</div>
+      <div className="et-eyebrow">Guitar Theory Coach · Practice</div>
       <h1 className="et-title">THE EAR TRAINER</h1>
       <p className="et-sub">Train the sound of a distance, not its shape. Music is the language — now hear it.</p>
 

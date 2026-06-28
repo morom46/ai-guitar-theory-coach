@@ -122,3 +122,33 @@ body {
   padding: 14px 22px;
   border-top: 1px dashed rgba(120, 150, 170, 0.25);
 }
+
+/* divider + icon-only Ear Trainer button */
+.shell-div {
+  width: 1px;
+  height: 24px;
+  background: #3a4853;
+  margin: 0 4px;
+  align-self: center;
+}
+
+.shell-icon {
+  font-size: 16px;
+  line-height: 1;
+  padding: 6px 11px;
+  border-radius: 3px;
+  border: 1.5px solid #3a4853;
+  background: rgba(255, 255, 255, 0.05);
+  color: #dce6ec;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.shell-icon:hover {
+  border-color: #dce6ec;
+}
+
+.shell-icon.on {
+  background: #dce6ec;
+  border-color: #dce6ec;
+}

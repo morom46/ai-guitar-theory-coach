@@ -73,7 +73,7 @@ function storeToken(t) {
   ls.set("sp.exp", String(Date.now() + (t.expires_in || 3600) * 1000));
 }
 
-export default function SpotifyRecent() {
+export default function SpotifyRecent({ onPickKey } = {}) {
   const [proxy, setProxy] = useState(ls.get("key.proxy") || "");
   const [proxyInput, setProxyInput] = useState("");
   const [token, setToken] = useState(ls.get("sp.token") || "");
@@ -221,6 +221,9 @@ export default function SpotifyRecent() {
                   )
                 ) : (
                   <a className="sp-link" href={tunebat(q)} target="_blank" rel="noopener noreferrer">🔑 key</a>
+                )}
+                {onPickKey && k?.status === "done" && k.key && (
+                  <button className="sp-link" style={{ cursor: "pointer", borderColor: C.sun, color: C.sun }} onClick={() => onPickKey(k.key)} title="Load this key onto the fretboard">▸ practice</button>
                 )}
                 <a className="sp-link" href={yt(q + " backing track")} target="_blank" rel="noopener noreferrer">▶ jam</a>
               </div>

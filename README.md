@@ -1,4 +1,4 @@
-# AI Guitar Theory Coach
+# Guitar Theory Coach
 
 > Music is the language. The guitar is the dumb machine. This app decodes the machine.
 

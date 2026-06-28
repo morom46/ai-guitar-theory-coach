@@ -3,7 +3,7 @@ import { ROOTS, CHORDS, INTERVALS, DEG, OPEN_MIDI, midiToFreq, noteNameToPc, bui
 import PracticePanel from "./PracticePanel.jsx";
 
 /**
- * CHORD BUILDER — Feature 03 of "AI Guitar Theory Coach".
+ * CHORD BUILDER — Feature 03 of "Guitar Theory Coach".
  * A chord is not a shape you memorise; it is thirds stacked out of a scale.
  * Pick a root and a quality, watch the chord get built one third at a time,
  * hear it, and see every place its tones live on the neck.
@@ -141,7 +141,7 @@ export default function ChordBuilder() {
         .cb-tonecard{ border:1.5px solid var(--line); border-radius:4px; padding:10px 12px; background: rgba(255,255,255,.04); min-width:78px; text-align:center; }
       `}</style>
 
-      <div className="cb-eyebrow">AI Guitar Theory Coach · Feature 03</div>
+      <div className="cb-eyebrow">Guitar Theory Coach · 02</div>
       <h1 className="cb-title">THE CHORD BUILDER</h1>
       <p className="cb-sub">A chord is thirds stacked out of a scale — not a shape to memorise. Build it, hear it, find it.</p>
 

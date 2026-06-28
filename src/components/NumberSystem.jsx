@@ -3,7 +3,7 @@ import { ROOTS, SCALES, DIATONIC, buildNoteNames, noteNameToPc, midiToFreq } fro
 import PracticePanel from "./PracticePanel.jsx";
 
 /**
- * NUMBER SYSTEM — Feature 04 of "AI Guitar Theory Coach".
+ * NUMBER SYSTEM — Feature 04 of "Guitar Theory Coach".
  * Stop thinking in letters; think in numbers. A I-IV-V is the same shape in
  * every key. This trains the Nashville number system: degrees 1-7, the
  * diatonic chords that sit on them, and translating between number and name.
@@ -153,7 +153,7 @@ export default function NumberSystem() {
         .ns-card{ border: 1.5px solid var(--ink); background: rgba(255,255,255,.04); border-radius: 4px; padding: 14px 16px; }
       `}</style>
 
-      <div className="ns-eyebrow">AI Guitar Theory Coach · Feature 04</div>
+      <div className="ns-eyebrow">Guitar Theory Coach · 03</div>
       <h1 className="ns-title">THE NUMBER SYSTEM</h1>
       <p className="ns-sub">A 1-4-5 is one idea in every key. Learn the numbers and you can play in all twelve.</p>
 
