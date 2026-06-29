@@ -3,6 +3,7 @@ import FretboardDecoder from "./components/FretboardDecoder.jsx";
 import EarTrainer from "./components/EarTrainer.jsx";
 import ChordBuilder from "./components/ChordBuilder.jsx";
 import NumberSystem from "./components/NumberSystem.jsx";
+import SongPractice from "./components/SongPractice.jsx";
 
 // The three numbered "lessons". Ear Trainer is a practice drill, set apart as
 // an icon below. Every feature reads from the one engine (src/theory/engine.js).
@@ -17,6 +18,7 @@ export default function App() {
 
   const render = () => {
     if (active === "ear") return <EarTrainer />;
+    if (active === "songs") return <SongPractice />;
     if (active === "chord") return <ChordBuilder />;
     if (active === "numbers") return <NumberSystem />;
     return <FretboardDecoder />;
@@ -44,6 +46,15 @@ export default function App() {
             </button>
           ))}
           <span className="shell-div" aria-hidden="true" />
+          <button
+            className={"shell-icon" + (active === "songs" ? " on" : "")}
+            onClick={() => setActive("songs")}
+            title="Song Practice — your songs on the fretboard"
+            aria-label="Song Practice"
+            aria-current={active === "songs" ? "page" : undefined}
+          >
+            🎵
+          </button>
           <button
             className={"shell-icon" + (active === "ear" ? " on" : "")}
             onClick={() => setActive("ear")}
