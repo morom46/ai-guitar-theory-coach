@@ -4,6 +4,7 @@ import EarTrainer from "./components/EarTrainer.jsx";
 import ChordBuilder from "./components/ChordBuilder.jsx";
 import NumberSystem from "./components/NumberSystem.jsx";
 import SongPractice from "./components/SongPractice.jsx";
+import LivePlayer from "./components/LivePlayer.jsx";
 
 // The three numbered "lessons". Ear Trainer is a practice drill, set apart as
 // an icon below. Every feature reads from the one engine (src/theory/engine.js).
@@ -18,6 +19,7 @@ export default function App() {
 
   const render = () => {
     if (active === "ear") return <EarTrainer />;
+    if (active === "live") return <LivePlayer />;
     if (active === "songs") return <SongPractice />;
     if (active === "chord") return <ChordBuilder />;
     if (active === "numbers") return <NumberSystem />;
@@ -45,6 +47,14 @@ export default function App() {
               <span className="shell-num">{f.num}</span> {f.label}
             </button>
           ))}
+          <button
+            className={"shell-live" + (active === "live" ? " on" : "")}
+            onClick={() => setActive("live")}
+            title="Live Player — play a song, follow the fretboard"
+            aria-current={active === "live" ? "page" : undefined}
+          >
+            ▶ LIVE
+          </button>
           <span className="shell-div" aria-hidden="true" />
           <button
             className={"shell-icon" + (active === "songs" ? " on" : "")}
