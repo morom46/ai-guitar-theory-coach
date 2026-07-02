@@ -12,7 +12,6 @@ import {
   buildNoteNames,
   midiToFreq,
 } from "../theory/engine.js";
-import SpotifyRecent from "./SpotifyRecent.jsx";
 
 /**
  * THE FRETBOARD DECODER — keystone of "Guitar Theory Coach".
@@ -349,6 +348,15 @@ export default function FretboardDecoder() {
     setMode("scale");
     setScaleId(soloPenta ? (minor ? "minorPent" : "majorPent") : (minor ? "aeolian" : "major"));
   };
+
+  // A key queued from the Spotify page ("▸ decode") loads on arrival.
+  useEffect(() => {
+    try {
+      const req = localStorage.getItem("decode.req");
+      if (req) { localStorage.removeItem("decode.req"); handlePickKey(req); }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="bp-root">
@@ -710,17 +718,6 @@ export default function FretboardDecoder() {
         </div>
       </div>
 
-      <div style={{ marginTop: 18 }}>
-        <div className="bp-eyebrow" style={{ marginBottom: 8, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-          Practice from your Spotify
-          <Info text="Tap ▸ practice on a song to load its key onto the fretboard in Scales mode — an instant backdrop to solo over." />
-          <span style={{ marginLeft: 10 }}>· soloing scale:</span>
-          <button className={"bp-btn" + (soloPenta ? " on" : "")} style={{ padding: "3px 9px", fontSize: 10 }} onClick={() => setSoloPenta((v) => !v)}>
-            {soloPenta ? "pentatonic" : "full scale"}
-          </button>
-        </div>
-        <SpotifyRecent onPickKey={handlePickKey} />
-      </div>
     </div>
   );
 }

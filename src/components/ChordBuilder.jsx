@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
 import { ROOTS, CHORDS, INTERVALS, DEG, OPEN_MIDI, midiToFreq, noteNameToPc, buildNoteNames } from "../theory/engine.js";
-import PracticePanel from "./PracticePanel.jsx";
 
 /**
  * CHORD BUILDER — Feature 03 of "Guitar Theory Coach".
@@ -273,7 +272,6 @@ export default function ChordBuilder() {
         </div>
       </div>
 
-      <PracticePanel keyLabel={root} tonality={tonality} keyId={root + (isMinor ? "min" : "maj")} />
     </div>
   );
 }

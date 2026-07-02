@@ -42,7 +42,7 @@ function LinkBtn({ href, children, primary }) {
   );
 }
 
-export default function PracticePanel({ keyLabel, tonality, keyId }) {
+export default function PracticePanel({ keyLabel, tonality, keyId, spotify = true }) {
   const penta = tonality === "major" ? "major pentatonic" : "minor pentatonic";
   const backing = [
     { label: `▶ ${keyLabel} ${tonality} jam`, url: ytSearch(`${keyLabel} ${tonality} guitar backing track`) },
@@ -67,7 +67,7 @@ export default function PracticePanel({ keyLabel, tonality, keyId }) {
         .pp-tiny{ font-size: 11px; padding: 4px 8px; }
       `}</style>
 
-      <SpotifyRecent />
+      {spotify && <SpotifyRecent />}
 
       <div className="pp-eyebrow" style={{ marginBottom: 6 }}>🎧 Solo backing tracks — opens YouTube for {keyLabel} {tonality}</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

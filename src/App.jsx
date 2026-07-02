@@ -5,6 +5,7 @@ import ChordBuilder from "./components/ChordBuilder.jsx";
 import NumberSystem from "./components/NumberSystem.jsx";
 import SongPractice from "./components/SongPractice.jsx";
 import LivePlayer from "./components/LivePlayer.jsx";
+import SpotifyPage from "./components/SpotifyPage.jsx";
 
 // The three numbered "lessons". Ear Trainer is a practice drill, set apart as
 // an icon below. Every feature reads from the one engine (src/theory/engine.js).
@@ -15,12 +16,18 @@ const LESSONS = [
 ];
 
 export default function App() {
-  const [active, setActive] = useState("decoder");
+  // If we're returning from the Spotify OAuth redirect (?code=...), open the
+  // Spotify page so SpotifyRecent can finish the token exchange.
+  const [active, setActive] = useState(() => {
+    try { if (new URL(window.location.href).searchParams.get("code")) return "spotify"; } catch {}
+    return "decoder";
+  });
 
   const render = () => {
     if (active === "ear") return <EarTrainer />;
     if (active === "live") return <LivePlayer />;
     if (active === "songs") return <SongPractice />;
+    if (active === "spotify") return <SpotifyPage go={setActive} />;
     if (active === "chord") return <ChordBuilder />;
     if (active === "numbers") return <NumberSystem />;
     return <FretboardDecoder />;
@@ -64,6 +71,16 @@ export default function App() {
             aria-current={active === "songs" ? "page" : undefined}
           >
             🎵
+          </button>
+          <button
+            className={"shell-icon" + (active === "spotify" ? " on" : "")}
+            onClick={() => setActive("spotify")}
+            title="Spotify — recently played, keys, send to practice"
+            aria-label="Spotify"
+            aria-current={active === "spotify" ? "page" : undefined}
+            style={{ color: "#1DB954" }}
+          >
+            ♫
           </button>
           <button
             className={"shell-icon" + (active === "ear" ? " on" : "")}
