@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { INTERVALS, DEG, SCALES, midiToFreq } from "../theory/engine.js";
+import { C } from "../ui/theme.js";
 
 /**
  * EAR TRAINER — Feature 02 of "Guitar Theory Coach".
@@ -10,21 +11,6 @@ import { INTERVALS, DEG, SCALES, midiToFreq } from "../theory/engine.js";
  *   degrees   — hear the key's tonic -> a note, name its number (Nashville).
  * The whole point: train the SOUND of a distance, not its shape.
  */
-
-const C = {
-  paper: "#000000",
-  ink: "#DCE6EC",
-  blue: "#3E9BD6",
-  cyan: "#36C7E0",
-  sun: "#FF7A2E",
-  sunDeep: "#E0601B",
-  line: "#3A4853",
-  red: "#E0533F",
-  green: "#3FB68B",
-  violet: "#B58CFF",
-  muted: "#7C8A95",
-  grid: "rgba(120,150,170,0.10)",
-};
 
 const MAJOR = SCALES.major.ints;                 // [0,2,4,5,7,9,11]
 const DEGREE_LABELS = MAJOR.map((iv) => DEG[iv]); // ["1","2","3","4","5","6","7"]
@@ -131,52 +117,19 @@ export default function EarTrainer() {
   })();
 
   return (
-    <div className="et-root">
-      <style>{`
-        .et-root{
-          --ink:${C.ink};--muted:${C.muted};--line:${C.line};
-          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-          color: var(--ink);
-          background:
-            linear-gradient(${C.grid} 1px, transparent 1px),
-            linear-gradient(90deg, ${C.grid} 1px, transparent 1px),
-            ${C.paper};
-          background-size: 24px 24px, 24px 24px;
-          padding: 22px; border-radius: 8px;
-          box-shadow: inset 0 0 0 1.5px rgba(220,230,236,0.16);
-        }
-        .et-mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; }
-        .et-title{ font-family: ui-monospace, monospace; font-size: 26px; font-weight: 700; letter-spacing: 1px; margin: 0; }
-        .et-sub{ font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }
-        .et-eyebrow{ font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-        .et-btn{ font-family: ui-monospace, monospace; font-size: 12px; letter-spacing:.5px;
-          padding: 7px 12px; border: 1.5px solid var(--line); background: rgba(255,255,255,.05);
-          color: var(--ink); cursor: pointer; border-radius: 3px; transition: all .12s; }
-        .et-btn:hover{ border-color: var(--ink); }
-        .et-btn.on{ background: var(--ink); color: ${C.paper}; border-color: var(--ink); }
-        .et-opt{ font-family: ui-monospace, monospace; cursor: pointer; border-radius: 4px;
-          border: 1.5px solid var(--line); background: rgba(255,255,255,.04); color: var(--ink);
-          padding: 12px 8px; text-align: center; transition: all .15s; }
-        .et-opt:hover:not(:disabled){ border-color: var(--ink); transform: translateY(-1px); }
-        .et-opt:disabled{ cursor: default; }
-        .et-card{ border: 1.5px solid var(--ink); background: rgba(255,255,255,.04); border-radius: 4px; padding: 14px 16px; }
-        .et-big{ font-family: ui-monospace, monospace; font-weight: 700; cursor: pointer; border-radius: 4px;
-          border: 1.5px solid ${C.sunDeep}; background: ${C.sun}; color:#fff; padding: 12px 20px; font-size: 14px; letter-spacing:.5px; }
-        .et-big:hover{ filter: brightness(1.08); }
-      `}</style>
-
-      <div className="et-eyebrow">Guitar Theory Coach · Practice</div>
-      <h1 className="et-title">THE EAR TRAINER</h1>
-      <p className="et-sub">Train the sound of a distance, not its shape. Music is the language — now hear it.</p>
+    <div className="page">
+      <div className="eyebrow">Guitar Theory Coach · Practice</div>
+      <h1 className="page-title">THE EAR TRAINER</h1>
+      <p className="page-sub">Train the sound of a distance, not its shape. Music is the language — now hear it.</p>
 
       {/* drill selector */}
       <div style={{ marginTop: 18 }}>
-        <div className="et-eyebrow" style={{ marginBottom: 6 }}>Drill</div>
+        <div className="eyebrow" style={{ marginBottom: 6 }}>Drill</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className={"et-btn" + (drill === "intervals" ? " on" : "")} onClick={() => switchDrill("intervals")}>
+          <button className={"btn" + (drill === "intervals" ? " on" : "")} onClick={() => switchDrill("intervals")}>
             Intervals <span style={{ opacity: 0.6, fontSize: 10 }}>distance from a root</span>
           </button>
-          <button className={"et-btn" + (drill === "degrees" ? " on" : "")} onClick={() => switchDrill("degrees")}>
+          <button className={"btn" + (drill === "degrees" ? " on" : "")} onClick={() => switchDrill("degrees")}>
             Scale degrees <span style={{ opacity: 0.6, fontSize: 10 }}>number in the key</span>
           </button>
         </div>
@@ -184,10 +137,10 @@ export default function EarTrainer() {
 
       {/* transport */}
       <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <button className="et-big" onClick={next}>▶ {challenge ? "Next" : "Play first"}</button>
-        <button className="et-btn" onClick={() => playChallenge()} disabled={!challenge} style={{ opacity: challenge ? 1 : 0.5 }}>↺ Replay</button>
+        <button className="big" onClick={next}>▶ {challenge ? "Next" : "Play first"}</button>
+        <button className="btn" onClick={() => playChallenge()} disabled={!challenge} style={{ opacity: challenge ? 1 : 0.5 }}>↺ Replay</button>
         <div style={{ flex: 1 }} />
-        <div className="et-mono" style={{ fontSize: 12, color: C.muted }}>
+        <div className="mono" style={{ fontSize: 12, color: C.muted }}>
           score <span style={{ color: C.ink, fontWeight: 700 }}>{score.correct}/{score.total}</span>
           <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>
           {accuracy}%
@@ -214,7 +167,7 @@ export default function EarTrainer() {
           if (isCorrect) { style.borderColor = C.green; style.background = "rgba(63,182,139,.18)"; style.color = C.green; }
           else if (isWrongPick) { style.borderColor = C.red; style.background = "rgba(224,83,63,.16)"; style.color = C.red; }
           return (
-            <button key={o.val} className="et-opt" style={style} onClick={() => answer(o.val)} disabled={revealed || !challenge}>
+            <button key={o.val} className="opt" style={style} onClick={() => answer(o.val)} disabled={revealed || !challenge}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{o.label}</div>
               <div style={{ fontSize: 9.5, color: C.muted, marginTop: 3 }}>{o.sub}</div>
             </button>
@@ -224,15 +177,15 @@ export default function EarTrainer() {
 
       {/* feedback + why */}
       <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <div className="et-card" style={{ flex: "1 1 280px", minWidth: 260 }}>
-          <div className="et-eyebrow" style={{ marginBottom: 8 }}>Feedback</div>
-          <div className="et-mono" style={{ fontSize: 14, lineHeight: 1.6, color: revealed ? (picked === correctVal ? C.green : C.red) : C.ink }}>
+        <div className="card" style={{ flex: "1 1 280px", minWidth: 260 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Feedback</div>
+          <div className="mono" style={{ fontSize: 14, lineHeight: 1.6, color: revealed ? (picked === correctVal ? C.green : C.red) : C.ink }}>
             {feedback}
           </div>
         </div>
-        <div className="et-card" style={{ flex: "1 1 280px", minWidth: 260, background: "rgba(62,155,214,.10)" }}>
-          <div className="et-eyebrow" style={{ marginBottom: 8, color: C.blue }}>The "why"</div>
-          <div className="et-mono" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+        <div className="card" style={{ flex: "1 1 280px", minWidth: 260, background: "rgba(62,155,214,.10)" }}>
+          <div className="eyebrow" style={{ marginBottom: 8, color: C.blue }}>The "why"</div>
+          <div className="mono" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
             {drill === "intervals"
               ? "An interval is a distance in half-steps. You're learning the feeling of each gap — the leap of a 5th, the tension of a b2 — so you can find it on the neck by ear."
               : "A scale degree is a note's number inside the key. Hearing the tonic first gives gravity; every other note pulls toward it. This is the number system, learned through the ear."}

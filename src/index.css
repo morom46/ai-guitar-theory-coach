@@ -1,5 +1,59 @@
+/* ============================================================
+   THEME — one palette, two skins.
+   Dark (default) and warm light, toggled via data-theme on <html>.
+   src/ui/theme.js exposes these same variables to JS.
+   ============================================================ */
+
 :root {
   color-scheme: dark;
+  --paper: #000000;
+  --ink: #dce6ec;
+  --blue: #3e9bd6;
+  --cyan: #36c7e0;
+  --sun: #ff7a2e;
+  --sun-deep: #e0601b;
+  --line: #3a4853;
+  --red: #e0533f;
+  --green: #3fb68b;
+  --violet: #b58cff;
+  --muted: #7c8a95;
+  --grid: rgba(120, 150, 170, 0.1);
+  --grid-bold: rgba(120, 150, 170, 0.16);
+  /* surfaces */
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-lo: rgba(255, 255, 255, 0.04);
+  --surface-hi: rgba(255, 255, 255, 0.06);
+  --neck-a: rgba(255, 255, 255, 0.04);
+  --neck-b: rgba(255, 255, 255, 0.012);
+  --inp-bg: #0b0b0b;
+  --pop-bg: #0c1116;
+  --edge: rgba(220, 230, 236, 0.16);
+}
+
+/* warm light — cream paper, coffee ink, same accent family */
+[data-theme="light"] {
+  color-scheme: light;
+  --paper: #f7efe1;
+  --ink: #33291d;
+  --blue: #2e7cb4;
+  --cyan: #0e93a8;
+  --sun: #ec5f12;
+  --sun-deep: #c24d0c;
+  --line: #c9b795;
+  --red: #c23e2c;
+  --green: #2c8a68;
+  --violet: #7a58d0;
+  --muted: #8a7a63;
+  --grid: rgba(130, 100, 60, 0.13);
+  --grid-bold: rgba(130, 100, 60, 0.2);
+  --surface: rgba(80, 55, 20, 0.06);
+  --surface-lo: rgba(80, 55, 20, 0.045);
+  --surface-hi: rgba(80, 55, 20, 0.08);
+  --neck-a: rgba(80, 55, 20, 0.06);
+  --neck-b: rgba(80, 55, 20, 0.02);
+  --inp-bg: #fdf7ea;
+  --pop-bg: #fffaf0;
+  --edge: rgba(80, 55, 20, 0.25);
 }
 
 * {
@@ -10,16 +64,227 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #000;
+  background: var(--paper);
 }
 
 body {
-  color: #dce6ec;
+  color: var(--ink);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* ---- design system: shared by every page ---- */
+
+.page {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    var(--paper);
+  background-size: 24px 24px, 24px 24px;
+  padding: 22px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1.5px var(--edge);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+}
+
+.page-title {
+  font-family: ui-monospace, Menlo, Monaco, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.page-sub {
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 4px 0 0;
+  letter-spacing: 0.3px;
+}
+
+.eyebrow {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.btn {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 7px 11px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.12s;
+}
+
+.btn:hover {
+  border-color: var(--ink);
+}
+
+.btn.on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.chip {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 6px 9px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.12s;
+}
+
+.chip:hover {
+  border-color: var(--ink);
+}
+
+.chip.on {
+  background: var(--sun);
+  border-color: var(--sun-deep);
+  color: #fff;
+}
+
+.inp {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  border: 1.5px solid var(--line);
+  background: var(--inp-bg);
+  color: var(--ink);
+}
+
+.card {
+  border: 1.5px solid var(--ink);
+  background: var(--surface-lo);
+  border-radius: 4px;
+  padding: 14px 16px;
+  position: relative;
+}
+
+/* fretboard note node (shared <Neck>) */
+.node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 999px;
+  user-select: none;
+  transition: transform 0.1s, background-color 0.3s, border-color 0.3s, color 0.3s,
+    box-shadow 0.3s, opacity 0.2s, width 0.15s, height 0.15s;
+}
+
+.node:hover {
+  transform: scale(1.12);
+}
+
+.node.still {
+  cursor: default;
+}
+
+.node.still:hover {
+  transform: none;
+}
+
+/* quiz answer option (Ear Trainer / Number System) */
+.opt {
+  font-family: ui-monospace, monospace;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1.5px solid var(--line);
+  background: var(--surface-lo);
+  color: var(--ink);
+  padding: 12px 8px;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.opt:hover:not(:disabled) {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.opt:disabled {
+  cursor: default;
+}
+
+/* accent call-to-action */
+.big {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1.5px solid var(--sun-deep);
+  background: var(--sun);
+  color: #fff;
+  padding: 12px 20px;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.big:hover {
+  filter: brightness(1.08);
+}
+
+/* outbound link pill */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  text-decoration: none;
+  padding: 7px 11px;
+  border: 1.5px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  transition: all 0.12s;
+}
+
+.link:hover {
+  border-color: var(--ink);
+}
+
+.link.primary {
+  border-color: var(--sun-deep);
+  background: rgba(255, 122, 46, 0.14);
+  color: var(--sun);
+}
+
+.link.sm {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+@media (max-width: 760px) {
+  .page-title {
+    font-size: 20px;
+  }
 }
 
 /* ---- app shell ---- */
@@ -37,7 +302,7 @@ body {
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px 22px;
-  border-bottom: 1.5px solid #3a4853;
+  border-bottom: 1.5px solid var(--line);
 }
 
 .shell-brand {
@@ -50,7 +315,7 @@ body {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: #ff7a2e;
+  background: var(--sun);
   box-shadow: 0 0 0 4px rgba(255, 122, 46, 0.25);
   flex: none;
 }
@@ -65,31 +330,68 @@ body {
 .shell-sub {
   font-family: ui-monospace, monospace;
   font-size: 10.5px;
-  color: #7c8a95;
+  color: var(--muted);
   letter-spacing: 0.5px;
   margin-top: 2px;
 }
 
 .shell-nav {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
+/* a named group of tabs: Learn · Play · Tools */
+.shell-group {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 9px 8px 7px;
+  border: 1px dashed var(--grid-bold);
+  border-radius: 6px;
+}
+
+.shell-group-label {
+  position: absolute;
+  top: -6px;
+  left: 9px;
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--paper);
+  padding: 0 5px;
+  line-height: 1.2;
+}
+
+/* one uniform tab: icon + label */
 .shell-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: ui-monospace, monospace;
   font-size: 11.5px;
-  padding: 7px 11px;
+  padding: 6px 10px;
   border-radius: 3px;
-  border: 1.5px solid #3a4853;
-  background: rgba(255, 255, 255, 0.05);
-  color: #dce6ec;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.shell-tab:hover {
+  border-color: var(--ink);
 }
 
 .shell-tab.on {
-  background: #dce6ec;
-  color: #000;
-  border-color: #dce6ec;
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
 }
 
 .shell-tab:disabled {
@@ -97,16 +399,70 @@ body {
   cursor: not-allowed;
 }
 
-.shell-num {
-  opacity: 0.6;
+.shell-tab .ic {
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.85;
 }
 
-.shell-soon {
-  margin-left: 6px;
-  font-size: 9px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  opacity: 0.7;
+.shell-tab .ic.num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  opacity: 0.55;
+}
+
+.shell-tab.on .ic {
+  opacity: 1;
+}
+
+.shell-tab .lab {
+  line-height: 1;
+}
+
+/* narrow screens: collapse to icons (tooltips keep the names) */
+@media (max-width: 1080px) {
+  .shell-tab .lab {
+    display: none;
+  }
+
+  .shell-tab {
+    padding: 6px 8px;
+  }
+
+  .shell-group {
+    gap: 4px;
+  }
+}
+
+/* divider + icon-only buttons (theme toggle) */
+.shell-div {
+  width: 1px;
+  height: 24px;
+  background: var(--line);
+  margin: 0 2px;
+  align-self: center;
+}
+
+.shell-icon {
+  font-size: 16px;
+  line-height: 1;
+  padding: 6px 11px;
+  border-radius: 3px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.shell-icon:hover {
+  border-color: var(--ink);
+}
+
+.shell-icon.on {
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .shell-main {
@@ -117,63 +473,309 @@ body {
 .shell-foot {
   font-family: ui-monospace, monospace;
   font-size: 11px;
-  color: #7c8a95;
+  color: var(--muted);
   text-align: center;
   padding: 14px 22px;
-  border-top: 1px dashed rgba(120, 150, 170, 0.25);
+  border-top: 1px dashed var(--grid-bold);
 }
 
-/* divider + icon-only Ear Trainer button */
-.shell-div {
-  width: 1px;
-  height: 24px;
-  background: #3a4853;
-  margin: 0 4px;
-  align-self: center;
+/* ---- navbar polish: uniform icon slots + toggle animations ---- */
+
+/* every tab's leading icon sits in the same fixed slot */
+.shell-tab {
+  padding: 7px 11px;
+  gap: 8px;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease,
+    transform 0.12s ease, box-shadow 0.18s ease;
 }
 
+.shell-tab .ic {
+  width: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.shell-tab .ic.num {
+  font-size: 10px;
+}
+
+/* hover: gentle lift */
+.shell-tab:hover {
+  transform: translateY(-1px);
+}
+
+/* press: squash */
+.shell-tab:active {
+  transform: scale(0.95);
+}
+
+/* toggle on: pop-in + icon grow + soft glow */
+@keyframes tab-pop {
+  0% { transform: scale(0.92); }
+  55% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.shell-tab.on {
+  animation: tab-pop 0.24s cubic-bezier(0.34, 1.4, 0.5, 1);
+  box-shadow: 0 0 0 3px rgba(255, 122, 46, 0.18);
+}
+
+.shell-tab.on .ic {
+  transform: scale(1.18);
+  opacity: 1;
+}
+
+/* group frames + labels: identical rhythm everywhere */
+.shell-group {
+  gap: 7px;
+  padding: 10px 9px 8px;
+}
+
+.shell-group-label {
+  font-size: 8.5px;
+  letter-spacing: 2.2px;
+  top: -7px;
+}
+
+/* theme toggle matches tab sizing */
 .shell-icon {
-  font-size: 16px;
-  line-height: 1;
-  padding: 6px 11px;
-  border-radius: 3px;
-  border: 1.5px solid #3a4853;
-  background: rgba(255, 255, 255, 0.05);
-  color: #dce6ec;
-  cursor: pointer;
-  transition: all 0.12s;
+  padding: 7px 11px;
+  font-size: 14px;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
 }
 
 .shell-icon:hover {
-  border-color: #dce6ec;
+  transform: translateY(-1px);
 }
 
-.shell-icon.on {
-  background: #dce6ec;
-  border-color: #dce6ec;
+.shell-icon:active {
+  transform: scale(0.95);
 }
 
-/* distinct Live Player tab */
-.shell-live {
+@media (prefers-reduced-motion: reduce) {
+  .shell-tab.on { animation: none; }
+  .shell-tab:hover, .shell-icon:hover { transform: none; }
+}
+
+/* ---- song library browser (Songs & Tones) ---- */
+.lib {
+  margin-top: 8px;
+  border: 1px dashed var(--grid-bold);
+  border-radius: 6px;
+  padding: 10px 12px;
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.lib-artist {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-top: 1px dashed var(--grid);
+}
+
+.lib-artist:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.lib-artist .a {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex: 0 0 150px;
+  line-height: 2.2;
+}
+
+.lib-artist .s {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 700px) {
+  .lib-artist .a { flex-basis: 100%; line-height: 1.4; }
+}
+
+/* ---- theory manual (scroll-driven learning page) ---- */
+
+/* reading progress bar */
+.th-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sun), var(--cyan));
+  z-index: 99;
+  pointer-events: none;
+}
+
+/* reveal-on-scroll */
+.th-reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.65s ease, transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.th-reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* sticky chapter index */
+.th-toc {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 10px 0;
+  margin-top: 14px;
+  background: var(--paper);
+  border-bottom: 1px dashed var(--grid-bold);
+}
+
+/* one chapter */
+.th-chapter {
+  position: relative;
+  margin-top: 34px;
+  padding-top: 8px;
+}
+
+/* huge ghost level number behind each chapter title */
+.th-ghost {
+  position: absolute;
+  top: -14px;
+  right: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 84px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  opacity: 0.055;
+  pointer-events: none;
+  user-select: none;
+}
+
+.th-title {
+  font-family: ui-monospace, monospace;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 4px 0 0;
+}
+
+.th-prose {
+  font-size: 13.5px;
+  line-height: 1.7;
+  max-width: 860px;
+  margin-top: 8px;
+}
+
+.th-prose b {
+  color: var(--sun);
+}
+
+/* "where in the app" cross-reference row */
+.th-apps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px dashed var(--sun-deep);
+  border-radius: 5px;
+  background: rgba(255, 122, 46, 0.06);
+}
+
+/* interactive lab container */
+.th-lab {
+  margin-top: 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  background: var(--surface-lo);
+}
+
+/* chromatic circle notes */
+.th-cnote {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.th-cnote:hover {
+  transform: scale(1.15);
+}
+
+/* diatonic ladder */
+.th-ladder {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(64px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.th-rung {
+  font-family: ui-monospace, monospace;
+  text-align: center;
+  padding: 10px 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-lo);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.th-rung:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .th-ladder { grid-template-columns: repeat(4, 1fr); }
+  .th-ghost { font-size: 56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .th-reveal { transition: none; opacity: 1; transform: none; }
+  .th-cnote:hover, .th-rung:hover { transform: none; }
+}
+
+/* theory page: song-example rows */
+.th-songref {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-top: 1px dashed var(--grid);
+}
+
+.th-songref:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.th-songref .why {
   font-family: ui-monospace, monospace;
   font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 7px 12px;
-  border-radius: 3px;
-  border: 1.5px solid #e0601b;
-  background: rgba(255, 122, 46, 0.14);
-  color: #ff7a2e;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.shell-live:hover {
-  background: rgba(255, 122, 46, 0.22);
-}
-
-.shell-live.on {
-  background: #ff7a2e;
-  border-color: #e0601b;
-  color: #1a0d04;
+  color: var(--muted);
+  flex: 1 1 260px;
+  line-height: 1.5;
 }

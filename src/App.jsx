@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import FretboardDecoder from "./components/FretboardDecoder.jsx";
 import EarTrainer from "./components/EarTrainer.jsx";
 import ChordBuilder from "./components/ChordBuilder.jsx";
@@ -6,14 +6,39 @@ import NumberSystem from "./components/NumberSystem.jsx";
 import SongPractice from "./components/SongPractice.jsx";
 import LivePlayer from "./components/LivePlayer.jsx";
 import SpotifyPage from "./components/SpotifyPage.jsx";
+import TheoryPage from "./components/TheoryPage.jsx";
 
-// The three numbered "lessons". Ear Trainer is a practice drill, set apart as
-// an icon below. Every feature reads from the one engine (src/theory/engine.js).
-const LESSONS = [
-  { num: "01", id: "decoder", label: "Fretboard Decoder" },
-  { num: "02", id: "chord", label: "Chord Builder" },
-  { num: "03", id: "numbers", label: "Number System" },
+// Nav — three named groups, every tab uniform: icon (or lesson number) + label.
+// Labels collapse to icons on narrow screens; tooltips keep the full names.
+const NAV = [
+  {
+    group: "Learn",
+    items: [
+      { id: "theory", ic: "📖", label: "Theory", title: "The Theory Manual — the whole map, explained & heard" },
+      { id: "decoder", ic: "01", num: true, label: "Decoder", title: "01 · Fretboard Decoder — notes, intervals, scales, modes" },
+      { id: "chord", ic: "02", num: true, label: "Chords", title: "02 · Chord Builder — thirds stacked out of a scale" },
+      { id: "numbers", ic: "03", num: true, label: "Numbers", title: "03 · Number System — think in numbers, play in every key" },
+    ],
+  },
+  {
+    group: "Play",
+    items: [
+      { id: "live", ic: "▶", label: "Live", title: "Live Player — play a song, the fretboard follows" },
+      { id: "songs", ic: "🎵", label: "Songs & Tones", title: "Songs & Tones — what to play + your Blackstar settings, per song" },
+    ],
+  },
+  {
+    group: "Tools",
+    items: [
+      { id: "spotify", ic: "♫", label: "Spotify", title: "Spotify — recently played, keys, send to practice", color: "#1DB954" },
+      { id: "ear", ic: "🎧", label: "Ear", title: "Ear Trainer — listen & identify" },
+    ],
+  },
 ];
+
+const loadTheme = () => {
+  try { return localStorage.getItem("ui.theme") || "dark"; } catch { return "dark"; }
+};
 
 export default function App() {
   // If we're returning from the Spotify OAuth redirect (?code=...), open the
@@ -23,11 +48,20 @@ export default function App() {
     return "decoder";
   });
 
+  // dark ↔ warm light — flips every CSS variable (see index.css / ui/theme.js)
+  const [theme, setTheme] = useState(loadTheme);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("ui.theme", theme); } catch {}
+  }, [theme]);
+
   const render = () => {
+    if (active === "theory") return <TheoryPage go={setActive} />;
     if (active === "ear") return <EarTrainer />;
-    if (active === "live") return <LivePlayer />;
+    if (active === "live") return <LivePlayer go={setActive} />;
     if (active === "songs") return <SongPractice />;
     if (active === "spotify") return <SpotifyPage go={setActive} />;
+    if (active === "tones") return <SongPractice />; /* old Tones page now lives inside Songs */
     if (active === "chord") return <ChordBuilder />;
     if (active === "numbers") return <NumberSystem />;
     return <FretboardDecoder />;
@@ -44,52 +78,32 @@ export default function App() {
           </div>
         </div>
         <nav className="shell-nav" aria-label="Sections">
-          {LESSONS.map((f) => (
-            <button
-              key={f.id}
-              className={"shell-tab" + (active === f.id ? " on" : "")}
-              onClick={() => setActive(f.id)}
-              aria-current={active === f.id ? "page" : undefined}
-            >
-              <span className="shell-num">{f.num}</span> {f.label}
-            </button>
+          {NAV.map((g) => (
+            <div key={g.group} className="shell-group" role="group" aria-label={g.group}>
+              <span className="shell-group-label" aria-hidden="true">{g.group}</span>
+              {g.items.map((it) => (
+                <button
+                  key={it.id}
+                  className={"shell-tab" + (active === it.id ? " on" : "")}
+                  onClick={() => setActive(it.id)}
+                  title={it.title}
+                  aria-label={it.label}
+                  aria-current={active === it.id ? "page" : undefined}
+                >
+                  <span className={"ic" + (it.num ? " num" : "")} style={it.color && active !== it.id ? { color: it.color } : undefined} aria-hidden="true">{it.ic}</span>
+                  <span className="lab">{it.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
-          <button
-            className={"shell-live" + (active === "live" ? " on" : "")}
-            onClick={() => setActive("live")}
-            title="Live Player — play a song, follow the fretboard"
-            aria-current={active === "live" ? "page" : undefined}
-          >
-            ▶ LIVE
-          </button>
           <span className="shell-div" aria-hidden="true" />
           <button
-            className={"shell-icon" + (active === "songs" ? " on" : "")}
-            onClick={() => setActive("songs")}
-            title="Song Practice — your songs on the fretboard"
-            aria-label="Song Practice"
-            aria-current={active === "songs" ? "page" : undefined}
+            className="shell-icon"
+            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+            title={theme === "dark" ? "Switch to warm light theme" : "Switch to dark theme"}
+            aria-label="Toggle theme"
           >
-            🎵
-          </button>
-          <button
-            className={"shell-icon" + (active === "spotify" ? " on" : "")}
-            onClick={() => setActive("spotify")}
-            title="Spotify — recently played, keys, send to practice"
-            aria-label="Spotify"
-            aria-current={active === "spotify" ? "page" : undefined}
-            style={{ color: "#1DB954" }}
-          >
-            ♫
-          </button>
-          <button
-            className={"shell-icon" + (active === "ear" ? " on" : "")}
-            onClick={() => setActive("ear")}
-            title="Ear Trainer — listen & identify"
-            aria-label="Ear Trainer"
-            aria-current={active === "ear" ? "page" : undefined}
-          >
-            🎧
+            {theme === "dark" ? "☀" : "☾"}
           </button>
         </nav>
       </header>

@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { ROOTS, SCALES, DIATONIC, buildNoteNames, noteNameToPc, midiToFreq } from "../theory/engine.js";
+import { C } from "../ui/theme.js";
 
 /**
  * NUMBER SYSTEM — Feature 04 of "Guitar Theory Coach".
@@ -7,12 +8,6 @@ import { ROOTS, SCALES, DIATONIC, buildNoteNames, noteNameToPc, midiToFreq } fro
  * every key. This trains the Nashville number system: degrees 1-7, the
  * diatonic chords that sit on them, and translating between number and name.
  */
-
-const C = {
-  paper: "#000000", ink: "#DCE6EC", blue: "#3E9BD6", cyan: "#36C7E0",
-  sun: "#FF7A2E", sunDeep: "#E0601B", line: "#3A4853", red: "#E0533F",
-  green: "#3FB68B", violet: "#B58CFF", muted: "#7C8A95", grid: "rgba(120,150,170,0.10)",
-};
 
 const MAJOR = SCALES.major.ints; // [0,2,4,5,7,9,11]
 const suffix = (q) => (q === "min" ? "m" : q === "dim" ? "°" : "");
@@ -123,75 +118,54 @@ export default function NumberSystem() {
   const accuracy = score.total ? Math.round((score.correct / score.total) * 100) : 0;
 
   return (
-    <div className="ns-root">
+    <div className="page">
       <style>{`
-        .ns-root{ --ink:${C.ink};--muted:${C.muted};--line:${C.line};
-          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink);
-          background: linear-gradient(${C.grid} 1px, transparent 1px), linear-gradient(90deg, ${C.grid} 1px, transparent 1px), ${C.paper};
-          background-size: 24px 24px, 24px 24px; padding: 22px; border-radius: 8px; box-shadow: inset 0 0 0 1.5px rgba(220,230,236,0.16); }
-        .ns-mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; }
-        .ns-title{ font-family: ui-monospace, monospace; font-size: 26px; font-weight: 700; letter-spacing: 1px; margin: 0; }
-        .ns-sub{ font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }
-        .ns-eyebrow{ font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-        .ns-btn{ font-family: ui-monospace, monospace; font-size: 12px; letter-spacing:.5px; padding: 7px 11px;
-          border: 1.5px solid var(--line); background: rgba(255,255,255,.05); color: var(--ink); cursor: pointer; border-radius: 3px; transition: all .12s; }
-        .ns-btn:hover{ border-color: var(--ink); }
-        .ns-btn.on{ background: var(--ink); color: ${C.paper}; border-color: var(--ink); }
-        .ns-chip{ font-family: ui-monospace, monospace; font-size: 12px; padding: 6px 9px; border: 1.5px solid var(--line);
-          background: rgba(255,255,255,.05); cursor:pointer; border-radius:3px; color: var(--ink); }
-        .ns-chip.on{ background: ${C.sun}; border-color:${C.sunDeep}; color:#fff; }
         .ns-row{ display:grid; grid-template-columns: 52px 1fr 64px 1fr; gap: 8px; align-items:center;
-          padding: 9px 12px; border:1.5px solid var(--line); border-radius:4px; background: rgba(255,255,255,.04);
+          padding: 9px 12px; border:1.5px solid var(--line); border-radius:4px; background: var(--surface-lo);
           cursor:pointer; transition: all .12s; }
         .ns-row:hover{ border-color: var(--ink); }
-        .ns-opt{ font-family: ui-monospace, monospace; cursor: pointer; border-radius: 4px; border: 1.5px solid var(--line);
-          background: rgba(255,255,255,.04); color: var(--ink); padding: 12px 8px; text-align: center; transition: all .15s; }
-        .ns-opt:hover:not(:disabled){ border-color: var(--ink); transform: translateY(-1px); }
-        .ns-big{ font-family: ui-monospace, monospace; font-weight: 700; cursor: pointer; border-radius: 4px;
-          border: 1.5px solid ${C.sunDeep}; background: ${C.sun}; color:#fff; padding: 12px 20px; font-size: 14px; }
-        .ns-card{ border: 1.5px solid var(--ink); background: rgba(255,255,255,.04); border-radius: 4px; padding: 14px 16px; }
       `}</style>
 
-      <div className="ns-eyebrow">Guitar Theory Coach · 03</div>
-      <h1 className="ns-title">THE NUMBER SYSTEM</h1>
-      <p className="ns-sub">A 1-4-5 is one idea in every key. Learn the numbers and you can play in all twelve.</p>
+      <div className="eyebrow">Guitar Theory Coach · 03</div>
+      <h1 className="page-title">THE NUMBER SYSTEM</h1>
+      <p className="page-sub">A 1-4-5 is one idea in every key. Learn the numbers and you can play in all twelve.</p>
 
       {/* view toggle */}
       <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <button className={"ns-btn" + (view === "map" ? " on" : "")} onClick={() => setView("map")}>Key map</button>
-        <button className={"ns-btn" + (view === "drill" ? " on" : "")} onClick={() => setView("drill")}>Drill</button>
+        <button className={"btn" + (view === "map" ? " on" : "")} onClick={() => setView("map")}>Key map</button>
+        <button className={"btn" + (view === "drill" ? " on" : "")} onClick={() => setView("drill")}>Drill</button>
         <div style={{ flex: 1 }} />
-        <button className="ns-btn" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>{muted ? "♪ sound off" : "♪ sound on"}</button>
+        <button className="btn" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>{muted ? "♪ sound off" : "♪ sound on"}</button>
       </div>
 
       {view === "map" && (
         <>
           <div style={{ marginTop: 16 }}>
-            <div className="ns-eyebrow" style={{ marginBottom: 6 }}>Key</div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Key</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {ROOTS.map((r) => (
-                <button key={r} className={"ns-chip" + (r === key ? " on" : "")} onClick={() => setKey(r)}>{r}</button>
+                <button key={r} className={"chip" + (r === key ? " on" : "")} onClick={() => setKey(r)}>{r}</button>
               ))}
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
-            <div className="ns-eyebrow" style={{ marginBottom: 8 }}>{key} major — number · note · chord (tap a row to hear the chord)</div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>{key} major — number · note · chord (tap a row to hear the chord)</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div className="ns-mono" style={{ display: "grid", gridTemplateColumns: "52px 1fr 64px 1fr", gap: 8, fontSize: 10, color: C.muted, padding: "0 12px", letterSpacing: 1 }}>
+              <div className="mono" style={{ display: "grid", gridTemplateColumns: "52px 1fr 64px 1fr", gap: 8, fontSize: 10, color: C.muted, padding: "0 12px", letterSpacing: 1 }}>
                 <span>NUMBER</span><span>NOTE</span><span>ROMAN</span><span>CHORD</span>
               </div>
               {rows.map((r, i) => (
                 <div key={i} className="ns-row" onClick={() => playTriad(key, i)}>
-                  <span className="ns-mono" style={{ fontSize: 18, fontWeight: 700, color: i === 0 ? C.sun : C.ink }}>{r.num}</span>
-                  <span className="ns-mono" style={{ fontSize: 14 }}>{r.note}</span>
-                  <span className="ns-mono" style={{ fontSize: 13, color: C.muted }}>{r.rn}</span>
-                  <span className="ns-mono" style={{ fontSize: 14, fontWeight: 700, color: r.quality === "Maj" ? C.sun : r.quality === "dim" ? C.red : C.cyan }}>{r.chord}</span>
+                  <span className="mono" style={{ fontSize: 18, fontWeight: 700, color: i === 0 ? C.sun : C.ink }}>{r.num}</span>
+                  <span className="mono" style={{ fontSize: 14 }}>{r.note}</span>
+                  <span className="mono" style={{ fontSize: 13, color: C.muted }}>{r.rn}</span>
+                  <span className="mono" style={{ fontSize: 14, fontWeight: 700, color: r.quality === "Maj" ? C.sun : r.quality === "dim" ? C.red : C.cyan }}>{r.chord}</span>
                 </div>
               ))}
             </div>
-            <div className="ns-card" style={{ marginTop: 14, background: "rgba(62,155,214,.10)" }}>
-              <div className="ns-eyebrow" style={{ marginBottom: 6, color: C.blue }}>The "why"</div>
-              <div className="ns-mono" style={{ fontSize: 13, lineHeight: 1.6 }}>
+            <div className="card" style={{ marginTop: 14, background: "rgba(62,155,214,.10)" }}>
+              <div className="eyebrow" style={{ marginBottom: 6, color: C.blue }}>The "why"</div>
+              <div className="mono" style={{ fontSize: 13, lineHeight: 1.6 }}>
                 The pattern of qualities never changes: <b style={{ color: C.sun }}>I ii iii IV V vi vii°</b>. Major on 1, 4, 5; minor on 2, 3, 6; diminished on 7 — in every key. That's why a song's numbers transpose anywhere.
               </div>
             </div>
@@ -202,14 +176,14 @@ export default function NumberSystem() {
       {view === "drill" && (
         <>
           <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <button className={"ns-btn" + (dir === "numToChord" ? " on" : "")} onClick={() => switchDir("numToChord")}>Number → chord</button>
-            <button className={"ns-btn" + (dir === "chordToNum" ? " on" : "")} onClick={() => switchDir("chordToNum")}>Chord → number</button>
+            <button className={"btn" + (dir === "numToChord" ? " on" : "")} onClick={() => switchDir("numToChord")}>Number → chord</button>
+            <button className={"btn" + (dir === "chordToNum" ? " on" : "")} onClick={() => switchDir("chordToNum")}>Chord → number</button>
           </div>
 
           <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <button className="ns-big" onClick={nextQ}>▶ {q ? "Next" : "Start"}</button>
+            <button className="big" onClick={nextQ}>▶ {q ? "Next" : "Start"}</button>
             <div style={{ flex: 1 }} />
-            <div className="ns-mono" style={{ fontSize: 12, color: C.muted }}>
+            <div className="mono" style={{ fontSize: 12, color: C.muted }}>
               score <span style={{ color: C.ink, fontWeight: 700 }}>{score.correct}/{score.total}</span>
               <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{accuracy}%
               <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>streak <span style={{ color: C.sun, fontWeight: 700 }}>{score.streak}</span>
@@ -217,11 +191,11 @@ export default function NumberSystem() {
             </div>
           </div>
 
-          <div className="ns-card" style={{ marginTop: 16, textAlign: "center" }}>
+          <div className="card" style={{ marginTop: 16, textAlign: "center" }}>
             {!q ? (
-              <div className="ns-mono" style={{ color: C.muted, fontSize: 13 }}>Press start. You'll get a random key each time — that's the point.</div>
+              <div className="mono" style={{ color: C.muted, fontSize: 13 }}>Press start. You'll get a random key each time — that's the point.</div>
             ) : (
-              <div className="ns-mono" style={{ fontSize: 18 }}>
+              <div className="mono" style={{ fontSize: 18 }}>
                 In <span style={{ color: C.sun, fontWeight: 700 }}>{q.key} major</span>,
                 {dir === "numToChord"
                   ? <> the <span style={{ color: C.cyan, fontWeight: 700 }}>{q.degIndex + 1}</span> ({DIATONIC[q.degIndex].rn}) chord is…</>
@@ -239,7 +213,7 @@ export default function NumberSystem() {
                 if (isCorrect) { st.borderColor = C.green; st.background = "rgba(63,182,139,.18)"; st.color = C.green; }
                 else if (isWrong) { st.borderColor = C.red; st.background = "rgba(224,83,63,.16)"; st.color = C.red; }
                 return (
-                  <button key={o.val} className="ns-opt" style={st} disabled={revealed} onClick={() => answer(o.val)}>
+                  <button key={o.val} className="opt" style={st} disabled={revealed} onClick={() => answer(o.val)}>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>{o.label}</div>
                     {o.sub && <div style={{ fontSize: 9.5, color: C.muted, marginTop: 3 }}>{o.sub}</div>}
                   </button>
@@ -249,7 +223,7 @@ export default function NumberSystem() {
           )}
 
           {revealed && q && (
-            <div className="ns-mono" style={{ marginTop: 12, fontSize: 14, color: picked === drill.correct ? C.green : C.red }}>
+            <div className="mono" style={{ marginTop: 12, fontSize: 14, color: picked === drill.correct ? C.green : C.red }}>
               {picked === drill.correct ? "Correct" : "Not quite"} — in {q.key} major, the {q.degIndex + 1} chord is {chordNameIn(q.key, q.degIndex)} ({DIATONIC[q.degIndex].rn}).
             </div>
           )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { C } from "../ui/theme.js";
 
 /**
  * SPOTIFY RECENT — recently played tracks + automatic key lookup.
@@ -11,11 +12,6 @@ import React, { useEffect, useRef, useState } from "react";
 
 // A Spotify Client ID is a public identifier (not a secret) — safe in client code.
 const CLIENT_ID = "d0df00eaf98b442c85099d732a3f1587";
-
-const C = {
-  ink: "#DCE6EC", muted: "#7C8A95", line: "#3A4853", sun: "#FF7A2E",
-  sunDeep: "#E0601B", cyan: "#36C7E0", green: "#1DB954", red: "#E0533F", grid: "rgba(120,150,170,0.10)",
-};
 
 const SCOPE = "user-read-recently-played";
 const AUTH = "https://accounts.spotify.com/authorize";
@@ -159,50 +155,41 @@ export default function SpotifyRecent({ onPickKey, actions } = {}) {
   return (
     <div className="sp-wrap">
       <style>{`
-        .sp-wrap{ border:1.5px solid ${C.line}; border-radius:6px; padding:14px 16px; margin-bottom:16px; background: rgba(29,185,84,.06); }
-        .sp-eyebrow{ font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: ${C.muted}; }
-        .sp-mono{ font-family: ui-monospace, monospace; }
-        .sp-btn{ font-family: ui-monospace, monospace; font-size: 12px; padding: 7px 12px; border-radius: 3px; cursor: pointer;
-          border:1.5px solid ${C.line}; background: rgba(255,255,255,.05); color:${C.ink}; }
-        .sp-btn.green{ border-color:${C.green}; background:${C.green}; color:#04130a; font-weight:700; }
-        .sp-link{ font-family: ui-monospace, monospace; font-size: 11px; text-decoration:none; padding:4px 8px; border-radius:3px;
-          border:1.5px solid ${C.line}; background: rgba(255,255,255,.05); color:${C.ink}; }
-        .sp-link:hover{ border-color:${C.ink}; }
+        .sp-wrap{ border:1.5px solid var(--line); border-radius:6px; padding:14px 16px; margin-bottom:16px; background: rgba(29,185,84,.06); }
+        .sp-green{ border-color:${C.spotify}; background:${C.spotify}; color:#04130a; font-weight:700; }
         .sp-key{ font-family: ui-monospace, monospace; font-weight:700; font-size:13px; min-width:42px; text-align:center;
-          padding:4px 8px; border-radius:3px; border:1.5px solid ${C.sunDeep}; color:${C.sun}; background: rgba(255,122,46,.12); text-decoration:none; }
-        .sp-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 0; border-bottom:1px dashed ${C.grid}; }
+          padding:4px 8px; border-radius:3px; border:1.5px solid var(--sun-deep); color:var(--sun); background: rgba(255,122,46,.12); text-decoration:none; }
+        .sp-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 0; border-bottom:1px dashed var(--grid); }
         .sp-row .t{ flex:1 1 200px; font-family: ui-monospace, monospace; font-size:12.5px; }
-        .sp-in{ font-family: ui-monospace, monospace; font-size:12px; padding:7px 9px; border-radius:3px; border:1.5px solid ${C.line};
-          background:#0b0b0b; color:${C.ink}; min-width: 240px; }
       `}</style>
 
-      <div className="sp-eyebrow" style={{ marginBottom: 8, color: C.green }}>♫ From your Spotify — recently played</div>
+      <div className="eyebrow" style={{ marginBottom: 8, color: C.spotify }}>♫ From your Spotify — recently played</div>
 
       {!token ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button className="sp-btn green" onClick={login}>Connect Spotify</button>
-          {status === "loading" && <span className="sp-mono" style={{ fontSize: 11, color: C.muted }}>connecting…</span>}
-          {status === "error" && <span className="sp-mono" style={{ fontSize: 11, color: C.red }}>{err}</span>}
+          <button className="btn sp-green" onClick={login}>Connect Spotify</button>
+          {status === "loading" && <span className="mono" style={{ fontSize: 11, color: C.muted }}>connecting…</span>}
+          {status === "error" && <span className="mono" style={{ fontSize: 11, color: C.red }}>{err}</span>}
         </div>
       ) : (
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <button className="sp-btn" onClick={fetchRecent}>↻ refresh</button>
-            <button className="sp-btn" onClick={logout}>disconnect</button>
-            {status === "loading" && <span className="sp-mono" style={{ fontSize: 11, color: C.muted }}>loading…</span>}
-            {status === "error" && <span className="sp-mono" style={{ fontSize: 11, color: C.red }}>{err}</span>}
+            <button className="btn" onClick={fetchRecent}>↻ refresh</button>
+            <button className="btn" onClick={logout}>disconnect</button>
+            {status === "loading" && <span className="mono" style={{ fontSize: 11, color: C.muted }}>loading…</span>}
+            {status === "error" && <span className="mono" style={{ fontSize: 11, color: C.red }}>{err}</span>}
           </div>
 
           {!proxy && (
             <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <span className="sp-mono" style={{ fontSize: 11, color: C.muted }}>Auto-key off — paste a key-proxy URL (see /worker) to show keys automatically:</span>
-              <input className="sp-in" placeholder="https://getkey.you.workers.dev" value={proxyInput} onChange={(e) => setProxyInput(e.target.value)} />
-              <button className="sp-btn" onClick={saveProxy}>Save</button>
+              <span className="mono" style={{ fontSize: 11, color: C.muted }}>Auto-key off — paste a key-proxy URL (see /worker) to show keys automatically:</span>
+              <input className="inp" style={{ minWidth: 240 }} placeholder="https://getkey.you.workers.dev" value={proxyInput} onChange={(e) => setProxyInput(e.target.value)} />
+              <button className="btn" onClick={saveProxy}>Save</button>
             </div>
           )}
 
           {tracks.length === 0 && status === "idle" && (
-            <div className="sp-mono" style={{ fontSize: 12, color: C.muted }}>No recent tracks yet — play something on Spotify, then refresh.</div>
+            <div className="mono" style={{ fontSize: 12, color: C.muted }}>No recent tracks yet — play something on Spotify, then refresh.</div>
           )}
 
           {tracks.map((t) => {
@@ -215,25 +202,25 @@ export default function SpotifyRecent({ onPickKey, actions } = {}) {
                   k?.status === "done" && k.key ? (
                     <a className="sp-key" href={yt(`${k.key} backing track`)} target="_blank" rel="noopener noreferrer" title="Open a backing track in this key">{k.key}</a>
                   ) : k?.status === "loading" ? (
-                    <span className="sp-mono" style={{ fontSize: 11, color: C.muted, minWidth: 42, textAlign: "center" }}>…</span>
+                    <span className="mono" style={{ fontSize: 11, color: C.muted, minWidth: 42, textAlign: "center" }}>…</span>
                   ) : (
-                    <a className="sp-link" href={tunebat(q)} target="_blank" rel="noopener noreferrer">find key</a>
+                    <a className="link sm" href={tunebat(q)} target="_blank" rel="noopener noreferrer">find key</a>
                   )
                 ) : (
-                  <a className="sp-link" href={tunebat(q)} target="_blank" rel="noopener noreferrer">🔑 key</a>
+                  <a className="link sm" href={tunebat(q)} target="_blank" rel="noopener noreferrer">🔑 key</a>
                 )}
                 {onPickKey && k?.status === "done" && k.key && (
-                  <button className="sp-link" style={{ cursor: "pointer", borderColor: C.sun, color: C.sun }} onClick={() => onPickKey(k.key)} title="Load this key onto the fretboard">▸ practice</button>
+                  <button className="link sm" style={{ cursor: "pointer", borderColor: C.sun, color: C.sun }} onClick={() => onPickKey(k.key)} title="Load this key onto the fretboard">▸ practice</button>
                 )}
                 {actions && actions(t, k?.status === "done" ? k.key : null)}
-                <a className="sp-link" href={yt(q + " backing track")} target="_blank" rel="noopener noreferrer">▶ jam</a>
+                <a className="link sm" href={yt(q + " backing track")} target="_blank" rel="noopener noreferrer">▶ jam</a>
               </div>
             );
           })}
 
-          <div className="sp-mono" style={{ fontSize: 10.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+          <div className="mono" style={{ fontSize: 10.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
             {proxy ? (
-              <>Keys auto-detected — tap a key to open a backing track in it. Key/BPM data by <a className="sp-link" style={{ padding: "1px 5px" }} href="https://getsongbpm.com" target="_blank" rel="noopener noreferrer">GetSongBPM</a>. A song's key can vary with capo/tuning. <button className="sp-link" style={{ cursor: "pointer" }} onClick={() => { ls.del("key.proxy"); setProxy(""); }}>change proxy</button></>
+              <>Keys auto-detected — tap a key to open a backing track in it. Key/BPM data by <a className="link sm" style={{ padding: "1px 5px" }} href="https://getsongbpm.com" target="_blank" rel="noopener noreferrer">GetSongBPM</a>. A song's key can vary with capo/tuning. <button className="link sm" style={{ cursor: "pointer" }} onClick={() => { ls.del("key.proxy"); setProxy(""); }}>change proxy</button></>
             ) : (
               <>"🔑 key" opens a key-finder site for that song. Add a key-proxy (see the worker/ folder) to show keys here automatically.</>
             )}
