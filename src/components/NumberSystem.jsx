@@ -1,6 +1,11 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ROOTS, SCALES, DIATONIC, buildNoteNames, noteNameToPc, midiToFreq } from "../theory/engine.js";
 import { C } from "../ui/theme.js";
+import { tone as audioTone } from "../audio/engine.js";
+import { useDroneFollow } from "../audio/useDrone.js";
+import CircleOfFifths from "./CircleOfFifths.jsx";
+import { pickWeighted, record } from "../data/progress.js";
+import WeakSpots from "./WeakSpots.jsx";
 
 /**
  * NUMBER SYSTEM — Feature 04 of "Guitar Theory Coach".
@@ -17,9 +22,11 @@ const writeBest = (n) => { try { localStorage.setItem("ns.best", String(n)); } c
 const shuffle = (a) => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
 
 export default function NumberSystem() {
-  const [view, setView] = useState("map");   // "map" | "drill"
+  const [view, setView] = useState("map");   // "map" | "drill" | "circle"
   const [key, setKey] = useState("C");
   const [muted, setMuted] = useState(false);
+  // Keep the drone on this page's key (honours the follow switch).
+  useDroneFollow(key);
 
   // drill state
   const [dir, setDir] = useState("numToChord"); // numToChord | chordToNum
@@ -29,7 +36,6 @@ export default function NumberSystem() {
   const [score, setScore] = useState({ correct: 0, total: 0, streak: 0 });
   const [best, setBest] = useState(readBest);
 
-  const audioRef = useRef(null);
 
   const chordNameIn = (keyName, d) => {
     const names = buildNoteNames(keyName);
@@ -40,21 +46,7 @@ export default function NumberSystem() {
   /* audio */
   const tone = (freq, when = 0, dur = 0.7) => {
     if (muted) return;
-    try {
-      if (!audioRef.current) audioRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const ctx = audioRef.current;
-      if (ctx.state === "suspended") ctx.resume();
-      const t0 = ctx.currentTime + when;
-      const osc = ctx.createOscillator(); const osc2 = ctx.createOscillator();
-      const g = ctx.createGain(); const g2 = ctx.createGain();
-      osc.type = "triangle"; osc.frequency.value = freq;
-      osc2.type = "sine"; osc2.frequency.value = freq * 2; g2.gain.value = 0.25;
-      osc2.connect(g2); g2.connect(g); osc.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(0.24, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.start(t0); osc2.start(t0); osc.stop(t0 + dur + 0.05); osc2.stop(t0 + dur + 0.05);
-    } catch (e) { /* no audio */ }
+    audioTone(freq, when, dur);
   };
 
   const playTriad = (keyName, d, arp = true) => {
@@ -82,7 +74,9 @@ export default function NumberSystem() {
   /* drill */
   const nextQ = () => {
     const k = ROOTS[Math.floor(Math.random() * ROOTS.length)];
-    const d = Math.floor(Math.random() * 7);
+    // The degree is weighted by your own miss rate; the KEY stays uniform,
+    // because being able to do it in every key is the point of the page.
+    const d = pickWeighted("numbers", [0, 1, 2, 3, 4, 5, 6], { avoid: q ? q.degIndex : null });
     setQ({ key: k, degIndex: d });
     setPicked(null);
     setRevealed(false);
@@ -92,6 +86,7 @@ export default function NumberSystem() {
     if (revealed || !q) return;
     const correct = dir === "numToChord" ? chordNameIn(q.key, q.degIndex) : q.degIndex + 1;
     const ok = val === correct;
+    record("numbers", q.degIndex, ok);
     setPicked(val);
     setRevealed(true);
     const streak = ok ? score.streak + 1 : 0;
@@ -134,9 +129,12 @@ export default function NumberSystem() {
       <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <button className={"btn" + (view === "map" ? " on" : "")} onClick={() => setView("map")}>Key map</button>
         <button className={"btn" + (view === "drill" ? " on" : "")} onClick={() => setView("drill")}>Drill</button>
+        <button className={"btn" + (view === "circle" ? " on" : "")} onClick={() => setView("circle")}>The circle</button>
         <div style={{ flex: 1 }} />
         <button className="btn" onClick={() => setMuted((m) => !m)} aria-pressed={muted}>{muted ? "♪ sound off" : "♪ sound on"}</button>
       </div>
+
+      {view === "circle" && <CircleOfFifths muted={muted} />}
 
       {view === "map" && (
         <>
@@ -189,6 +187,15 @@ export default function NumberSystem() {
               <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>streak <span style={{ color: C.sun, fontWeight: 700 }}>{score.streak}</span>
               <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>best <span style={{ color: C.cyan, fontWeight: 700 }}>{best}</span>
             </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 12 }}>
+            <WeakSpots
+              drill="numbers"
+              tick={score.total}
+              title="Degrees you keep missing"
+              label={(k) => `${Number(k) + 1} · ${DIATONIC[Number(k)].rn}`}
+            />
           </div>
 
           <div className="card" style={{ marginTop: 16, textAlign: "center" }}>

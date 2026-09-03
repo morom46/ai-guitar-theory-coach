@@ -24,8 +24,26 @@ const T = (voice, gain, isf, pickup, toneKnob, fx = {}, rig = "", notes = "") =>
   rig, notes,
 });
 
+/**
+ * The blues scale used to be faked: minor pentatonic plus a ♭5 pencilled in
+ * through `extras`. It is a real scale in the engine now, so a song written
+ * that way is promoted to it — same notes, but the b5 stops being a bolt-on
+ * and the vocabulary panel stops offering you a note you already have.
+ *
+ * Anything else in `extras` (the 2 and 6 that turn minor pentatonic into
+ * Dorian vocabulary, the major 3rd blues players mix in) is left exactly as it
+ * was: `extras` is a general mechanism, and this only fixes the one case where
+ * it was standing in for a scale.
+ */
+export function normaliseSong(song) {
+  if (!song || song.scaleId !== "minorPent") return song;
+  const extras = song.extras || [];
+  if (!extras.includes(6)) return song;
+  return { ...song, scaleId: "blues", extras: extras.filter((n) => n !== 6) };
+}
+
 // song: id, title, artist, key ("Em"/"D"), scaleId, tone, opts { extras, sections }
-const S = (id, title, artist, key, scaleId, tone, opts = {}) => ({
+const S = (id, title, artist, key, scaleId, tone, opts = {}) => normaliseSong({
   id, title, artist,
   root: key.replace(/m$/, ""),
   minor: /m$/.test(key),
@@ -134,6 +152,22 @@ export const SEED_SONGS = [
     T("Clean Warm", 2, 4, 4, 7, { r: ["Room", 3] }, "Acoustic on record", "Whistle-and-strum ballad; works clean with soft open chords.")),
   S("n24", "Don't Cry", "Guns N' Roses", "Am", "minorPent",
     T("Clean Warm", 3, 5, 4, 7, { r: ["Hall", 3] }, "Clean verse · big lead", "Solo: Super Crunch g7, bridge HB, slow singing bends.")),
+  S("n85", "November Rain", "Guns N' Roses", "B", "major",
+    T("Clean Warm", 3, 6, 4, 7, { d: ["Analogue", 3, 400], r: ["Hall", 5] }, "Clean verse · huge lead for the outro", "Tuned down a half step on record, so it's C shapes sounding in B. Outro solo: OD g7, bridge HB, slow wide vibrato."),
+    { sections: [
+      sec("n85a", "Verse", "B", "major", 7),
+      sec("n85b", "Solo 1", "B", "major", 7),
+      sec("n85c", "Outro solo", "Bm", "aeolian", 7),
+    ] }),
+  S("n86", "Alone", "Heart", "F#", "major",
+    T("Crunch", 5, 6, 4, 7, { m: ["Chorus", 3], d: ["Analogue", 3, 400], r: ["Hall", 6] }, "80s stack, huge room · Howard Leese", "Six sharps — F# major, and the verse sits on its iii (Bbm). Solo: OD 1 g7, bridge HB, full-step bends and slow wide vibrato."),
+    { sections: [
+      sec("n86a", "Verse", "Bbm", "aeolian", 6),
+      sec("n86b", "Chorus", "F#", "major", 11),
+      // The solo runs over the chorus loop — D#m–B–F#–C#, which is vi–IV–I–V
+      // in F# major, so the parent scale is the same one the chorus uses.
+      sec("n86c", "Solo", "F#", "major", 11),
+    ] }),
 
   /* == blues / blues-rock == */
   S("n25", "Pride and Joy", "Stevie Ray Vaughan", "E", "minorPent",
@@ -287,7 +321,9 @@ export const loadSongs = () => {
   const v2 = readArr(KEY);
   if (v2 && v2.length) {
     const ids = new Set(v2.map((s) => s.id));
-    return [...v2, ...SEED_SONGS.filter((s) => !ids.has(s.id))]; // pick up new seeds
+    // Saved songs get the same blues promotion as the seeds — including ones
+    // the user wrote themselves.
+    return [...v2.map(normaliseSong), ...SEED_SONGS.filter((s) => !ids.has(s.id))];
   }
   // first run on the unified store: merge the old split libraries into the seeds
   const seeds = [...SEED_SONGS];
@@ -328,19 +364,6 @@ export const saveSongs = (list) => { try { localStorage.setItem(KEY, JSON.string
 
 // a default tone for songs that don't have one yet
 export const defaultTone = () => T("Clean Warm", 4, 5, 3, 8, {}, "", "");
-
-// used by the Live Player's tone strip
-export const findSongTone = (title) => {
-  if (!title) return null;
-  const n = norm(title);
-  if (!n) return null;
-  const song = loadSongs().find((s) => {
-    if (!s.tone) return false;
-    const tn = norm(s.title);
-    return tn === n || tn.startsWith(n) || n.startsWith(tn);
-  });
-  return song ? { songId: song.id, title: song.title, tone: song.tone } : null;
-};
 
 /* ---------- batch 2: more RHCP + classics (m01…m42) ---------- */
 SEED_SONGS.push(
@@ -428,9 +451,21 @@ SEED_SONGS.push(
   S("m32", "Billie Jean", "Michael Jackson", "F#m", "minorPent",
     T("Clean Bright", 3, 3, 2, 7, {}, "Dry funk clean", "Chorus stabs only — short 16th chops with the left hand muting the rest."),
     { extras: [2, 9] }),
+  // Sections follow the BAR NUMBERS of the Live in LA transcription, so a
+  // section here and a page of the tab are the same thing — which is the only
+  // way an eighty-seven bar song gets learned a piece at a time.
   S("m33", "Slow Dancing in a Burning Room", "John Mayer", "Dbm", "minorPent",
-    T("Clean Warm", 4, 4, 5, 6, { r: ["Room", 3] }, "Two Rock clean edge · Strat neck", "Thumb-over chords with hammered embellishments; the intro lick is the whole vibe."),
-    { extras: [2, 9] }),
+    T("Clean Warm", 5, 4, 5, 6, { d: ["Analogue", 2, 380], r: ["Room", 4] }, "Two Rock Custom Reverb · Strat neck (Where the Light Is)", "Thumb-over chords with hammered embellishments; the intro lick is the whole vibe. ♩=72. Live in LA is warmer and pushed harder than the record — for the solo from bar 58 go Crunch g6 on the neck pickup and let the guitar's volume knob do the rest."),
+    { extras: [2, 9], sections: [
+      sec("m33a", "Intro (bars 1-13)", "Dbm", "minorPent", 4),
+      sec("m33b", "Verse (14-31)", "Dbm", "minorPent", 4),
+      sec("m33c", "Chorus (32-39)", "Dbm", "minorPent", 7),
+      sec("m33d", "Bridge (40-48)", "Dbm", "dorian", 9),
+      sec("m33e", "Chorus 2 (49-57)", "Dbm", "minorPent", 9),
+      // The solo runs over the chorus loop — D#m–B–F#–C#, which is vi–IV–I–V
+      // in F# major, so the parent scale is the same one the chorus uses.
+      sec("m33f", "Solo (58-86)", "Dbm", "dorian", 9),
+    ] }),
   S("m34", "Gravity", "John Mayer", "G", "majorPent",
     T("Clean Warm", 4, 4, 4, 6, { r: ["Room", 3] }, "Clean edge · Strat pos 4", "Slow G major pent with the b3 curl — one note per bar can be enough."),
     { extras: [3] }),

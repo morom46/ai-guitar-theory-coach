@@ -1,14 +1,66 @@
-import React, { useMemo, useRef, useState } from "react";
-import { ROOTS, CHORDS, INTERVALS, DEG, OPEN_MIDI, midiToFreq, noteNameToPc, buildNoteNames } from "../theory/engine.js";
+import React, { useMemo, useState } from "react";
+import { ROOTS, CHORDS, CHORD_FAMILY, INTERVALS, DEG, OPEN_MIDI, midiToFreq, noteNameToPc, buildNoteNames } from "../theory/engine.js";
 import { C, chordToneStyle } from "../ui/theme.js";
 import Neck from "./Neck.jsx";
+import { tone as audioTone } from "../audio/engine.js";
+import { useDroneFollow } from "../audio/useDrone.js";
+import StackIt from "./StackIt.jsx";
+import VoiceLeading from "./VoiceLeading.jsx";
+import ChordGravity from "./ChordGravity.jsx";
+import NameIt from "./NameIt.jsx";
+import ChordDiagram from "./ChordDiagram.jsx";
+import { findVoicings } from "../theory/voicings.js";
+import { strum as strumMidis } from "../audio/engine.js";
 
 /**
- * CHORD BUILDER — Feature 03 of "Guitar Theory Coach".
+ * CHORD BUILDER — lesson 02 of "Guitar Theory Coach".
+ *
  * A chord is not a shape you memorise; it is thirds stacked out of a scale.
- * Pick a root and a quality, watch the chord get built one third at a time,
- * hear it, and see every place its tones live on the neck.
+ * Four tabs, in the order they teach:
+ *
+ *   Build a chord   — pick a root and a quality, see it stacked and find it.
+ *   Stack it        — the same thing backwards: YOU build it, the app names it.
+ *   Voice leading   — the octave placement decision, and why good progressions
+ *                     barely move. This is where inversions actually land.
+ *   Chord gravity   — function, tension, release: why one chord follows another.
+   Name it         — the whole engine backwards: notes → chord, chord → scales,
+                     scale → chords, one note → every chord it lives in.
  */
+
+const TABS = [
+  { id: "build", label: "Build a chord", sub: "pick a quality — see it stacked, hear it, find it on the neck" },
+  { id: "stack", label: "Stack it yourself", sub: "the app names what you build — and keeps stacking to the 13th" },
+  { id: "voice", label: "Voice leading", sub: "the same progression twice: leaping, then barely moving" },
+  { id: "gravity", label: "Chord gravity", sub: "function, pull and release — why one chord follows another" },
+  { id: "name", label: "Name it", sub: "the engine backwards — tap notes, get the chord; ask which scales hold it" },
+];
+
+export default function ChordBuilder() {
+  const [tab, setTab] = useState("build");
+  const here = TABS.find((t) => t.id === tab) || TABS[0];
+
+  return (
+    <div className="page">
+      <div className="eyebrow">Guitar Theory Coach · 02</div>
+      <h1 className="page-title">THE CHORD BUILDER</h1>
+      <p className="page-sub">{here.sub}</p>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+        {TABS.map((t) => (
+          <button key={t.id} className={"btn" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "true" : undefined}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "build" && <BuildPanel />}
+      {tab === "stack" && <StackIt />}
+      {tab === "voice" && <VoiceLeading />}
+      {tab === "gravity" && <ChordGravity />}
+      {tab === "name" && <NameIt />}
+    </div>
+  );
+}
 
 const ROLE = {
   root: { bg: C.sun, br: C.sunDeep, tx: "#fff" },
@@ -26,12 +78,13 @@ const roleOf = (semis) => {
   return "tone";
 };
 
-export default function ChordBuilder() {
+function BuildPanel() {
   const [root, setRoot] = useState("C");
   const [chordId, setChordId] = useState("maj");
   const [muted, setMuted] = useState(false);
+  // Keep the drone on this page's key (honours the follow switch).
+  useDroneFollow(root);
   const [selected, setSelected] = useState(null); // {s,f} — s = OPEN_MIDI index
-  const audioRef = useRef(null);
 
   const ch = CHORDS[chordId];
   const names = useMemo(() => buildNoteNames(root), [root]);
@@ -59,24 +112,12 @@ export default function ChordBuilder() {
   /* ---- audio ---- */
   const tone = (freq, when = 0, dur = 1.1) => {
     if (muted) return;
-    try {
-      if (!audioRef.current) audioRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const ctx = audioRef.current;
-      if (ctx.state === "suspended") ctx.resume();
-      const t0 = ctx.currentTime + when;
-      const osc = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const g = ctx.createGain();
-      const g2 = ctx.createGain();
-      osc.type = "triangle"; osc.frequency.value = freq;
-      osc2.type = "sine"; osc2.frequency.value = freq * 2; g2.gain.value = 0.25;
-      osc2.connect(g2); g2.connect(g); osc.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(0.24, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.start(t0); osc2.start(t0); osc.stop(t0 + dur + 0.05); osc2.stop(t0 + dur + 0.05);
-    } catch (e) { /* no audio */ }
+    audioTone(freq, when, dur);
   };
+
+  // Real hand positions for this chord, solved from the tuning (see
+  // theory/voicings.js) rather than pulled from a table someone typed.
+  const shapes = useMemo(() => findVoicings(rootPc, chordId, { limit: 5 }), [rootPc, chordId]);
 
   const voicingMidis = ch.ints.map((iv) => 48 + rootPc + iv); // close voicing from C3-ish
   const strum = () => voicingMidis.forEach((m, i) => tone(midiToFreq(m), i * 0.05));
@@ -92,14 +133,10 @@ export default function ChordBuilder() {
   }, [selected, rootPc, chordMap, names]);
 
   return (
-    <div className="page">
+    <div>
       <style>{`
         .cb-tonecard{ border:1.5px solid var(--line); border-radius:4px; padding:10px 12px; background: var(--surface-lo); min-width:78px; text-align:center; }
       `}</style>
-
-      <div className="eyebrow">Guitar Theory Coach · 02</div>
-      <h1 className="page-title">THE CHORD BUILDER</h1>
-      <p className="page-sub">A chord is thirds stacked out of a scale — not a shape to memorise. Build it, hear it, find it.</p>
 
       {/* root + quality */}
       <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -111,16 +148,20 @@ export default function ChordBuilder() {
             ))}
           </div>
         </div>
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>Quality</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {Object.entries(CHORDS).map(([id, c]) => (
-              <button key={id} className={"btn" + (chordId === id ? " on" : "")} onClick={() => { setChordId(id); setSelected(null); }}>
-                {root}{c.sym} <span style={{ opacity: 0.6, fontSize: 10 }}>{c.name}</span>
-              </button>
-            ))}
+        {/* Nineteen qualities is a wall of buttons; CHORD_FAMILY splits them
+            into the three rows they actually belong to. */}
+        {Object.entries(CHORD_FAMILY).map(([fam, group]) => (
+          <div key={fam}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>{group.name}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {group.ids.map((id) => (
+                <button key={id} className={"btn" + (chordId === id ? " on" : "")} onClick={() => { setChordId(id); setSelected(null); }}>
+                  {root}{CHORDS[id].sym} <span style={{ opacity: 0.6, fontSize: 10 }}>{CHORDS[id].name}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button className="btn" onClick={strum} style={{ borderColor: C.sunDeep, background: C.sun, color: "#fff" }}>▶ strum</button>
           <button className="btn" onClick={arpeggiate}>↟ arpeggiate</button>
@@ -146,6 +187,30 @@ export default function ChordBuilder() {
                 <div className="mono" style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>{t.interval}</div>
               </button>
             </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* shapes you can actually grab */}
+      <div style={{ marginTop: 18 }}>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>
+          Shapes — every one of these is {root}{ch.sym}, found by the solver, not looked up. Tap to strum.
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {shapes.length === 0 ? (
+            <div className="mono" style={{ fontSize: 12, color: C.muted }}>
+              Nothing playable under one hand — a six-note chord needs more strings than you have, so drop a
+              tone (the 5th usually) and try again.
+            </div>
+          ) : shapes.map((v, i) => (
+            <ChordDiagram
+              key={i}
+              voicing={v}
+              names={names}
+              label={i === 0 ? `${root}${ch.sym}` : `${root}${ch.sym} · ${v.position}fr`}
+              sub={`${v.strings} strings · ${v.fingers} finger${v.fingers === 1 ? "" : "s"}${v.barre ? " · barre" : ""}`}
+              onPlay={() => { if (!muted) strumMidis(v.midis, { stagger: 0.045 }); }}
+            />
           ))}
         </div>
       </div>

@@ -24,3 +24,6 @@ pnpm-debug.log*
 *.sln
 *.local
 .fuse_hidden*
+
+# editor / tooling
+.claude/

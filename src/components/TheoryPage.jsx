@@ -3,6 +3,7 @@ import { ROOTS, DEG, INTERVALS, SCALES, CHORDS, DIATONIC, buildNoteNames, noteNa
 import { C, keyToneStyle } from "../ui/theme.js";
 import Neck from "./Neck.jsx";
 import { SEED_SONGS } from "../data/songs.js";
+import { tone as audioTone } from "../audio/engine.js";
 
 /**
  * THE THEORY MANUAL — one scrolling page that teaches the whole map,
@@ -108,24 +109,8 @@ function P({ children, delay = 80 }) {
 
 export default function TheoryPage({ go }) {
   const progress = useProgress();
-  const audioRef = useRef(null);
 
-  const tone = (freq, when = 0, dur = 0.8, vol = 0.24) => {
-    try {
-      if (!audioRef.current) audioRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const ctx = audioRef.current;
-      if (ctx.state === "suspended") ctx.resume();
-      const t0 = ctx.currentTime + when;
-      const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain();
-      o.type = "triangle"; o.frequency.value = freq;
-      o2.type = "sine"; o2.frequency.value = freq * 2; g2.gain.value = 0.25;
-      o2.connect(g2); g2.connect(g); o.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.start(t0); o2.start(t0); o.stop(t0 + dur + 0.05); o2.stop(t0 + dur + 0.05);
-    } catch (e) {}
-  };
+  const tone = (freq, when = 0, dur = 0.8, vol = 0.24) => audioTone(freq, when, dur, vol);
   const playMidi = (m, when = 0, dur = 0.8) => tone(midiToFreq(m), when, dur);
 
   const TOC = [

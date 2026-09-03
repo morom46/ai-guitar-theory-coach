@@ -6,6 +6,9 @@ import {
   SCALES,
   CHORDS,
   DIATONIC,
+  DIATONIC_MINOR,
+  KEY_MODES,
+  FUNCTION_NAME,
   OPEN_MIDI,
   FRETS,
   noteNameToPc,
@@ -14,6 +17,10 @@ import {
 } from "../theory/engine.js";
 import { C, RAINBOW, degBase } from "../ui/theme.js";
 import Neck, { neckGeom, SIZES } from "./Neck.jsx";
+import { tone as audioTone } from "../audio/engine.js";
+import { useMetronome } from "../audio/useMetronome.jsx";
+import { useDroneFollow, useDrone } from "../audio/useDrone.js";
+import { MODE_LADDER, ladderIndex, modeAt, modeInts, neighbourStep, labelFor } from "../theory/modes.js";
 
 /**
  * THE FRETBOARD DECODER — keystone of "Guitar Theory Coach".
@@ -30,6 +37,9 @@ const ROLE_STYLE = {
   note: { bg: "var(--surface-hi)", br: C.line, tx: C.ink },
   dim: { bg: "rgba(62,155,214,0.14)", br: "rgba(62,155,214,0.4)", tx: C.blue },
   char: { bg: C.violet, br: "#7A52C7", tx: "#1A1030" },
+  // the same degree as the neighbouring mode plays it — shown dashed, so you
+  // can see where the one changing note is about to move to
+  ghost: { bg: "transparent", br: C.violet, tx: C.violet, dashed: true },
 };
 
 // The 7 diatonic modes by parent-major degree. `char` = semitones from the
@@ -63,6 +73,7 @@ export default function FretboardDecoder() {
   const [flipStrings, setFlipStrings] = useState(false);
   const [parentRoot, setParentRoot] = useState("C");
   const [tonicDegree, setTonicDegree] = useState(0);
+  const [keyMode, setKeyMode] = useState("major"); // Harmony: major or minor key
   const [progId, setProgId] = useState("145");
   const [playing, setPlaying] = useState(false);
   const [chordIdx, setChordIdx] = useState(0);
@@ -74,8 +85,14 @@ export default function FretboardDecoder() {
   const [boxOn, setBoxOn] = useState(false);
   const [boxStart, setBoxStart] = useState(0);
   const [soloPenta, setSoloPenta] = useState(true);
+  const met = useMetronome();
+  const drone = useDrone();
+  // A/B tab: where we are on the brightness ladder, and which neighbour the
+  // flip compares against (+1 = one step darker, -1 = one step brighter).
+  const [ladderId, setLadderId] = useState("dorian");
+  const [flipDir, setFlipDir] = useState(1);
+  const [flipped, setFlipped] = useState(false); // showing the neighbour?
 
-  const audioRef = useRef(null);
 
   const rootPc = noteNameToPc(root);
   const names = useMemo(() => buildNoteNames(root), [root]);
@@ -83,12 +100,42 @@ export default function FretboardDecoder() {
   const parentPc = noteNameToPc(parentRoot);
 
   const isModal = mode === "modes" || mode === "progression";
+
+  // Harmony used to be able to explain major keys only, which left roughly
+  // half the seeded song library unexplainable. The map and the scale under it
+  // now follow the key flavour.
+  const keyScale = SCALES[KEY_MODES[keyMode].scaleId].ints;
+  const diaMap = keyMode === "minor" ? DIATONIC_MINOR : DIATONIC;
+
+  /* ---------- A/B tab: two modes, one note apart ---------- */
+  // At the ends of the ladder there is no neighbour in the chosen direction, so
+  // fall back to the other one rather than leaving the flip dead.
+  const abStep = neighbourStep(ladderId, flipDir) || neighbourStep(ladderId, -flipDir);
+  // At the top and bottom rungs the fallback above reverses the direction, so
+  // read the label off the step we actually got rather than off flipDir.
+  const abDir = abStep ? (abStep.darker ? 1 : -1) : flipDir;
+  const abFrom = MODE_LADDER[ladderIndex(ladderId)] || MODE_LADDER[1];
+  const abTo = abStep ? abStep.toMode : null;
+  // Which of the two is actually lit right now.
+  const abShown = flipped && abTo ? abTo : abFrom;
+  const abInts = modeInts(abShown.id) || SCALES.major.ints;
+  // The one note that differs, from the point of view of what's on screen.
+  const abChanging = !abStep ? null : flipped ? abStep.to : abStep.from;
+  const abOther = !abStep ? null : flipped ? abStep.from : abStep.to;
   const prog = PROGRESSIONS[progId];
   const effTonicDeg =
     mode === "progression" ? prog.degrees[chordIdx % prog.degrees.length] : tonicDegree;
   const activeMode = MODE_BY_DEGREE[effTonicDeg];
   const tonicPc = (parentPc + SCALES.major.ints[effTonicDeg]) % 12;
   const tonicName = parentNames[tonicPc];
+
+  // Keep the drone on whatever this view's tonal centre actually is (honours
+  // the follow switch). In Modes that is the MODE's tonic, not the parent key:
+  // put C under D Dorian and the ear just hears C Ionian starting on the 2nd,
+  // and the ♮6 this page highlights as Dorian's flavour note stops being a 6th
+  // at all. Progression is the exception — the chords move over one key centre,
+  // so a pedal on the parent root is the right sound there.
+  useDroneFollow(mode === "modes" ? tonicName : mode === "progression" ? parentRoot : root);
 
   const engine = useMemo(() => {
     const map = new Map();
@@ -129,12 +176,11 @@ export default function FretboardDecoder() {
         setPc(pc, lab, role);
       });
     } else if (mode === "harmony") {
-      const maj = SCALES.major.ints;
-      maj.forEach((iv) => {
+      keyScale.forEach((iv) => {
         const pc = (rootPc + iv) % 12;
         if (!map.has(pc)) setPc(pc, DEG[iv], "dim");
       });
-      const triadIvs = [maj[degree], maj[(degree + 2) % 7], maj[(degree + 4) % 7]];
+      const triadIvs = [keyScale[degree], keyScale[(degree + 2) % 7], keyScale[(degree + 4) % 7]];
       triadIvs.forEach((iv, i) => {
         const pc = (rootPc + iv) % 12;
         const rel = (pc - rootPc + 12) % 12;
@@ -143,6 +189,22 @@ export default function FretboardDecoder() {
         else if (i === 1) role = "third";
         setPc(pc, DEG[rel], role);
       });
+    } else if (mode === "ab") {
+      // Parallel view: the tonic never moves, one note does.
+      abInts.forEach((iv) => {
+        const pc = (rootPc + iv) % 12;
+        let role = "tone";
+        if (iv === 0) role = "root";
+        else if (iv === abChanging) role = "char";
+        else if (iv === 3 || iv === 4) role = "third";
+        setPc(pc, labelFor(iv, abShown.id), role);
+      });
+      // The neighbour's version of that same degree, dashed — you can see the
+      // note it is about to become before you flip.
+      if (abOther != null) {
+        const pc = (rootPc + abOther) % 12;
+        if (!map.has(pc)) setPc(pc, labelFor(abOther, flipped ? abFrom.id : abTo.id), "ghost");
+      }
     } else if (mode === "modes" || mode === "progression") {
       // The SAME seven notes of the parent major - only the nucleus moves.
       const maj = SCALES.major.ints;
@@ -159,40 +221,15 @@ export default function FretboardDecoder() {
       });
     }
     return { map, showAll };
-  }, [mode, scaleId, chordId, degree, root, rootPc, names, parentPc, effTonicDeg, activeMode]);
+  }, [
+    mode, scaleId, chordId, degree, root, rootPc, names, parentPc, effTonicDeg, activeMode,
+    abInts, abChanging, abOther, abShown, abFrom, abTo, flipped, keyScale,
+  ]);
 
+  // One shared voice for the whole app — see src/audio/engine.js.
   const play = (freq) => {
     if (muted) return;
-    try {
-      if (!audioRef.current) {
-        audioRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      const ctx = audioRef.current;
-      if (ctx.state === "suspended") ctx.resume();
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const g = ctx.createGain();
-      const g2 = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.value = freq;
-      osc2.type = "sine";
-      osc2.frequency.value = freq * 2;
-      g2.gain.value = 0.28;
-      osc2.connect(g2);
-      g2.connect(g);
-      osc.connect(g);
-      g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.26, now + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
-      osc.start(now);
-      osc2.start(now);
-      osc.stop(now + 1.3);
-      osc2.stop(now + 1.3);
-    } catch (e) {
-      /* audio unavailable */
-    }
+    audioTone(freq, 0, 1.25);
   };
 
   const playTriad = (deg) => {
@@ -211,21 +248,34 @@ export default function FretboardDecoder() {
     play(midiToFreq(midi));
   };
 
+  // The loop reads the CURRENT key and tempo through refs, so changing either
+  // mid-playback takes effect without restarting the progression. Before this,
+  // `parentPc` was captured when the interval started (change the key and you
+  // kept hearing the old one) and every drag of the tempo slider re-ran the
+  // effect, which fired a chord immediately — a whole cluster of them per drag.
+  const playTriadRef = useRef(playTriad);
+  playTriadRef.current = playTriad;
+  const stepMsRef = useRef(stepMs);
+  stepMsRef.current = stepMs;
+
   useEffect(() => {
     if (!playing || mode !== "progression") return;
     const p = PROGRESSIONS[progId];
     let i = chordIdx;
+    let id = null;
     const tick = () => {
       const deg = p.degrees[i % p.degrees.length];
-      playTriad(deg);
+      playTriadRef.current(deg);
       setChordIdx(i % p.degrees.length);
       i += 1;
+      // Re-arm each time instead of using a fixed interval: that way the tempo
+      // slider changes the NEXT gap rather than restarting the progression.
+      id = setTimeout(tick, stepMsRef.current);
     };
     tick();
-    const id = setInterval(tick, stepMs);
-    return () => clearInterval(id);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, mode, progId, stepMs]);
+  }, [playing, mode, progId]);
 
   useEffect(() => {
     if (mode !== "progression" && playing) setPlaying(false);
@@ -260,7 +310,7 @@ export default function FretboardDecoder() {
     const pc = midi % 12;
     const semis = (pc - rootPc + 12) % 12;
     const inSet = engine.map.has(pc) && engine.map.get(pc).role !== "dim";
-    const scaleIvs = mode === "harmony" ? SCALES.major.ints : (SCALES[scaleId] ? SCALES[scaleId].ints : SCALES.major.ints);
+    const scaleIvs = mode === "harmony" ? keyScale : (SCALES[scaleId] ? SCALES[scaleId].ints : SCALES.major.ints);
     const degIndex = scaleIvs.indexOf(semis);
     return {
       name: names[pc],
@@ -276,7 +326,7 @@ export default function FretboardDecoder() {
       degreeInScale: degIndex >= 0 ? DEG[semis] : null,
       inSet,
     };
-  }, [selected, rootPc, names, engine, mode, scaleId]);
+  }, [selected, rootPc, names, engine, mode, scaleId, keyScale]);
 
   const modes = [
     { id: "note", label: "Notes", lvl: "Lv 2" },
@@ -285,6 +335,7 @@ export default function FretboardDecoder() {
     { id: "chord", label: "Chords", lvl: "Lv 5" },
     { id: "harmony", label: "Harmony", lvl: "Lv 6" },
     { id: "modes", label: "Modes", lvl: "Lv 6+" },
+    { id: "ab", label: "Mode A/B", lvl: "Lv 6+" },
     { id: "progression", label: "Progression", lvl: "Lv 7" },
   ];
 
@@ -293,18 +344,26 @@ export default function FretboardDecoder() {
     if (mode === "interval") return { t: "Level 3 - Intervals", b: "An interval is the distance between two pitches in half-steps (frets). All scales and chords are just patterns of intervals. The red node is the tritone - the exact centre of the octave." };
     if (mode === "scale") return { t: "Level 4 - Scales", b: `A scale is an engineered sequence of intervals, not a list of notes. ${SCALES[scaleId].name}: ${SCALES[scaleId].formula}. The cyan node is the 3rd - it decides major vs. minor.` };
     if (mode === "chord") return { t: "Level 5 - Chords", b: `Chords stack thirds vertically out of the scale. ${CHORDS[chordId].name}: ${CHORDS[chordId].formula}.` };
+    if (mode === "ab")
+      return {
+        t: `${root} ${abFrom.name} vs ${root} ${abTo ? abTo.name : "—"}`,
+        b: abStep
+          ? `Same tonic, one note different. ${abShown.name} is ${abShown.feel}. Flip the ${abStep.fromLabel}/${abStep.toLabel} and that single note is the whole difference between the two modes — everything else stays put. Turn the drone on and play over it: without a tonic sounding underneath, a mode is just a scale shape.`
+          : "Pick a mode on the ladder.",
+      };
     if (mode === "modes") return { t: `Modes - ${activeMode.name}`, b: `These are the same seven notes as ${parentRoot} major. Moving the nucleus (the Sun) to degree ${effTonicDeg + 1} re-spells everything: ${activeMode.name} is ${activeMode.quality}, and its signature colour comes from the ${activeMode.charName} - the violet node.` };
     if (mode === "progression") return { t: "Soloing over the changes", b: `Don't wander one scale over a whole song. Over ${parentRoot} major's ${prog.name}, play each chord's mode: the same notes, but the Sun (and the numbers) jump to the current chord's root.` };
-    return { t: "Level 6 - Harmony", b: "Stack thirds on every degree of the major scale and you get a fixed map: I ii iii IV V vi vii. The V chord carries the b7 of the key and pulls hardest back toward I." };
-  }, [mode, scaleId, chordId, activeMode, parentRoot, effTonicDeg, prog]);
+    return keyMode === "minor"
+      ? { t: "Level 6 - Harmony (minor key)", b: "The same stacking, on a minor scale: i ii° bIII iv v bVI bVII. Note the v is MINOR — natural minor has no leading tone, so its dominant barely pulls. That is exactly why harmonic minor exists, and why most minor-key songs raise the 7 to play a real V7." }
+      : { t: "Level 6 - Harmony", b: "Stack thirds on every degree of the major scale and you get a fixed map: I ii iii IV V vi vii. The V chord carries the b7 of the key and pulls hardest back toward I." };
+  }, [mode, scaleId, chordId, activeMode, parentRoot, effTonicDeg, prog, root, abFrom, abTo, abStep, abShown, keyMode]);
 
   const triadName = useMemo(() => {
     if (mode !== "harmony") return null;
-    const maj = SCALES.major.ints;
-    const tPc = (rootPc + maj[degree]) % 12;
-    const d = DIATONIC[degree];
-    return `${d.rn} - ${names[tPc]} ${d.q}`;
-  }, [mode, degree, rootPc, names]);
+    const tPc = (rootPc + keyScale[degree]) % 12;
+    const d = diaMap[degree];
+    return `${d.rn} - ${names[tPc]} ${d.q} · ${FUNCTION_NAME[d.fn]} — ${d.why}`;
+  }, [mode, degree, rootPc, names, keyScale, diaMap]);
 
   // Load a Spotify-detected key (e.g. "Em", "F#m", "C") onto the fretboard.
   const handlePickKey = (keyStr) => {
@@ -428,11 +487,18 @@ export default function FretboardDecoder() {
 
         {mode === "harmony" && (
           <div>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>Diatonic chord ({root} major key)</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {DIATONIC.map((d, i) => (
-                <button key={i} className={"btn" + (degree === i ? " on" : "")} onClick={() => setDegree(i)}>
-                  {d.rn} <span style={{ opacity: 0.6, fontSize: 10 }}>{d.q}</span>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              Diatonic chord ({root} {KEY_MODES[keyMode].name.toLowerCase()} key)
+              <Info text="Stack thirds on every degree of the key and you get a fixed map of chords. Minor keys have their own map — half the songs in the library are in one." />
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {Object.entries(KEY_MODES).map(([id, m]) => (
+                <button key={id} className={"chip" + (keyMode === id ? " on" : "")} onClick={() => { setKeyMode(id); setDegree(0); }}>{m.name}</button>
+              ))}
+              <span style={{ width: 8 }} />
+              {diaMap.map((d, i) => (
+                <button key={i} className={"btn" + (degree === i ? " on" : "")} onClick={() => setDegree(i)} title={`${FUNCTION_NAME[d.fn]} — ${d.why}`}>
+                  {d.rn} <span style={{ opacity: 0.6, fontSize: 10 }}>{d.q} · {d.fn}</span>
                 </button>
               ))}
             </div>
@@ -473,6 +539,115 @@ export default function FretboardDecoder() {
           </>
         )}
 
+        {mode === "ab" && (
+          <>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>
+                The brightness ladder — every step down flattens exactly one note
+              </div>
+              <div className="ab-ladder">
+                {MODE_LADDER.map((m, i) => {
+                  const here = m.id === abShown.id;
+                  const other = abTo && m.id === (flipped ? abFrom.id : abTo.id);
+                  const step = i < MODE_LADDER.length - 1 ? neighbourStep(m.id, 1) : null;
+                  return (
+                    <React.Fragment key={m.id}>
+                      <button
+                        className={"ab-rung" + (here ? " on" : "") + (other ? " other" : "")}
+                        onClick={() => {
+                          setLadderId(m.id);
+                          setFlipped(false);
+                        }}
+                        title={`${root} ${m.name} — ${m.feel}`}
+                      >
+                        <span className="n">{m.name}</span>
+                        <span className="q">{m.quality}</span>
+                      </button>
+                      {step && (
+                        <span className="ab-gap" aria-hidden="true">
+                          {step.fromLabel}→{step.toLabel}
+                        </span>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            {abStep && abTo && (
+              <div className="ab-flip">
+                <button
+                  className={"ab-side" + (!flipped ? " on" : "")}
+                  onClick={() => setFlipped(false)}
+                  title={abFrom.feel}
+                >
+                  <span className="m">{root} {abFrom.name}</span>
+                  <span className="d">{abStep.fromLabel}</span>
+                </button>
+
+                <button
+                  className="ab-swap"
+                  onClick={() => setFlipped((v) => !v)}
+                  title="Flip the one note that separates these two modes"
+                  aria-label="Flip between the two modes"
+                >
+                  <span className="deg">{abStep.degree}</span>
+                  <span className="lab">flip the {abStep.degree}</span>
+                </button>
+
+                <button
+                  className={"ab-side" + (flipped ? " on" : "")}
+                  onClick={() => setFlipped(true)}
+                  title={abTo.feel}
+                >
+                  <span className="m">{root} {abTo.name}</span>
+                  <span className="d">{abStep.toLabel}</span>
+                </button>
+
+                <div className="ab-actions">
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      if (muted) return;
+                      // Tonic alone, then the tonic WITH the note that changes.
+                      // Heard on its own the note means nothing; the colour only
+                      // exists relative to the root. Scheduled on the audio
+                      // clock rather than with timers — nothing to clean up.
+                      const base = 60 + rootPc;
+                      audioTone(midiToFreq(base), 0, 1.1);
+                      audioTone(midiToFreq(base), 0.75, 1.6);
+                      audioTone(midiToFreq(base + abChanging), 0.75, 1.6);
+                    }}
+                    title="Hear the tonic, then the tonic together with the note that changes"
+                  >
+                    ♪ hear it
+                  </button>
+                  <button
+                    className={"btn" + (drone.on ? " on" : "")}
+                    onClick={() => (drone.on ? drone.stop() : drone.start())}
+                    title="Hold the tonic underneath — a mode means nothing without one"
+                  >
+                    ♁ {drone.on ? "drone on" : "hold the tonic"}
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      // Come back to the rung you picked rather than leaping
+                      // from one neighbour to the one on the far side.
+                      setFlipDir((d) => -d);
+                      setFlipped(false);
+                    }}
+                    title="Compare against the neighbour on the other side"
+                    style={{ padding: "5px 8px" }}
+                  >
+                    ⇅ compare {abDir === 1 ? "darker" : "brighter"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
         {mode === "progression" && (
           <>
             <div>
@@ -495,7 +670,29 @@ export default function FretboardDecoder() {
                 <label className="mono" style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 6 }}>
                   tempo
                   <input type="range" min="700" max="3000" step="100" value={stepMs} onChange={(e) => setStepMs(Number(e.target.value))} />
+                  <span style={{ minWidth: 74 }}>1 chord / {(stepMs / 1000).toFixed(1)}s</span>
                 </label>
+                {met && (
+                  <>
+                    {/* One chord per bar, locked to the metronome at the bottom of the screen. */}
+                    <button
+                      className="btn"
+                      style={{ padding: "5px 8px" }}
+                      onClick={() => setStepMs(Math.round(met.barSeconds() * 1000))}
+                      title={`One chord per bar at ${met.bpm} BPM (${met.beatsPerBar}/4)`}
+                    >
+                      ⟵ from click
+                    </button>
+                    <button
+                      className="btn"
+                      style={{ padding: "5px 8px" }}
+                      onClick={() => met.setFromBpm((60000 * met.beatsPerBar) / stepMs, { start: true })}
+                      title="Start the click at this progression's tempo"
+                    >
+                      → to click
+                    </button>
+                  </>
+                )}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                 {prog.degrees.map((deg, i) => {
@@ -558,6 +755,8 @@ export default function FretboardDecoder() {
             return {
               label,
               ...st,
+              dashed: role === "ghost",
+              opacity: role === "ghost" ? 0.55 : 1,
               size: isRoot ? baseSize + 2 : baseSize,
               fontSize: label.length > 2 ? 9 : 10,
               boxShadow: isRoot ? "0 0 0 3px rgba(255,122,46,.32)" : "none",
@@ -576,6 +775,7 @@ export default function FretboardDecoder() {
         {mode === "interval" && <Legend color={C.red} label="Tritone (centre of the octave)" />}
         {mode === "harmony" && <Legend color={"rgba(28,92,140,0.3)"} label="Other notes in the key" />}
         {isModal && <Legend color={C.violet} label="Characteristic note (the mode's flavour)" />}
+        {mode === "ab" && <Legend color={C.violet} label="The one note that changes — dashed = where it moves to" />}
         {rainbow && (
           <span className="mono" style={{ fontSize: 11, color: C.muted }}>
             Roy G Biv —{" "}

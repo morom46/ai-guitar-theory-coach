@@ -18,6 +18,12 @@ import { C } from "../ui/theme.js";
  * display-only neck (Live Player). `boxes` draws 5-fret position windows.
  * `flip` inverts the string order (default: low E on top).
  *
+ * `overlay(geom)` adds a layer over the notes, given this neck's geometry
+ * ({ neckW, neckH, noteX, noteY, dispY, g, frets, flip }). `resolve` runs
+ * during React's render and is keyed by pitch class, so it can neither
+ * animate per frame nor tell two simultaneous events apart — anything that
+ * moves belongs in an overlay instead. See SoloOverlay.jsx.
+ *
  * SIZING — every page uses the same presets (SIZES.md / SIZES.mini) so the
  * fretboard looks identical across pages 01, 02, Live, Songs…  Use the
  * `size` prop; only pass `geom` overrides for special cases (e.g. the
@@ -60,6 +66,7 @@ export default function Neck({
   stringLabel,          // (openMidi, names) => JSX — custom label column
   dim = false,          // fade the whole neck (stack view)
   header = null,        // extra JSX above the ruler, inside the scroll area
+  overlay = null,       // (geom) => JSX — a layer drawn OVER the notes
 }) {
   const names = useMemo(() => buildNoteNames(root), [root]);
   const rootPc = noteNameToPc(root);
@@ -153,6 +160,12 @@ export default function Neck({
                 );
               })
             )}
+            {/* Anything that has to animate per frame (the Solo Player's note
+                highway). It lives INSIDE this box on purpose: the neck sits in
+                a horizontal scroller, and a layer outside it would not scroll
+                with the frets. Geometry is handed over rather than recomputed
+                so there is only ever one source of fret positions. */}
+            {overlay ? overlay({ neckW, neckH, noteX, noteY, dispY, g, frets, flip }) : null}
           </div>
         </div>
       </div>

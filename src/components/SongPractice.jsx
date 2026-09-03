@@ -1,10 +1,17 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ROOTS, DEG, INTERVALS, SCALES, midiToFreq } from "../theory/engine.js";
+import React, { useEffect, useMemo, useState } from "react";
+import { ROOTS, DEG, INTERVALS, SCALES, CHORDS, midiToFreq, noteNameToPc, buildNoteNames, pcName } from "../theory/engine.js";
+import { borrowedChords, dominantOf } from "../theory/harmony.js";
+import { tabsForSong } from "../data/tabs.js";
+import { rootPosition } from "../theory/voicing.js";
+import { playMidi } from "../audio/engine.js";
 import { C, RAINBOW, degBase, keyToneStyle } from "../ui/theme.js";
 import Neck from "./Neck.jsx";
 import AmpPanel, { PickupSwitch } from "./AmpPanel.jsx";
 import { AMP, GUITAR, msToBpm } from "../data/tones.js";
 import { loadSongs, saveSongs, defaultTone } from "../data/songs.js";
+import { tone as audioTone } from "../audio/engine.js";
+import { useMetronome } from "../audio/useMetronome.jsx";
+import { useDroneFollow } from "../audio/useDrone.js";
 
 /**
  * SONGS & TONES — the one page for practising a song.
@@ -16,7 +23,7 @@ import { loadSongs, saveSongs, defaultTone } from "../data/songs.js";
  */
 
 const FRETS = 24;
-const SOLO_SCALES = ["minorPent", "majorPent", "aeolian", "major", "dorian", "mixolydian"];
+const SOLO_SCALES = ["minorPent", "majorPent", "blues", "aeolian", "major", "dorian", "mixolydian", "harmonicMinor"];
 const MINORISH = new Set(["minorPent", "aeolian", "dorian", "phrygian"]);
 
 const TIP_MINOR = { 1: "♭2 — Phrygian spice (sparingly)", 2: "2 / 9 — smooth melodic add", 4: "♮3 — major-3rd, bluesy lift", 6: "♭5 — the BLUE note", 8: "♭6 — dark Aeolian colour", 9: "6 — bright Dorian colour", 11: "♮7 — leading tone → root" };
@@ -140,7 +147,7 @@ function ToneEditor({ tone, onPatch }) {
 
 /* ==================================================================== */
 
-export default function SongPractice() {
+export default function SongPractice({ go }) {
   const [songs, setSongs] = useState(loadSongs);
   const [selId, setSelId] = useState(() => {
     try { const req = localStorage.getItem("songs.sel"); if (req) { localStorage.removeItem("songs.sel"); return req; } } catch {}
@@ -158,8 +165,8 @@ export default function SongPractice() {
   const [boxOn, setBoxOn] = useState(false);
   const [boxStart, setBoxStart] = useState(0);
   const [muted, setMuted] = useState(false);
+  const met = useMetronome();
   const [form, setForm] = useState({ title: "", artist: "", root: "A", minor: true, scaleId: "minorPent" });
-  const audioRef = useRef(null);
 
   const song = songs.find((s) => s.id === selId) || songs[0] || null;
   const persist = (list) => { setSongs(list); saveSongs(list); };
@@ -168,6 +175,8 @@ export default function SongPractice() {
 
   const sections = song ? sectionsOf(song) : [];
   const sec = sections.find((s) => s.id === secId) || sections[0] || null;
+  // The drone follows the active SECTION — sections modulate.
+  useDroneFollow(sec?.root);
   useEffect(() => { setSecId(null); setEditSec(false); setEditTone(false); }, [song?.id]);
 
   const secMinor = sec ? MINORISH.has(sec.scaleId) : true;
@@ -193,15 +202,7 @@ export default function SongPractice() {
   /* audio */
   const tone = (freq) => {
     if (muted) return;
-    try {
-      if (!audioRef.current) audioRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const ctx = audioRef.current; if (ctx.state === "suspended") ctx.resume();
-      const t0 = ctx.currentTime, o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain();
-      o.type = "triangle"; o.frequency.value = freq; o2.type = "sine"; o2.frequency.value = freq * 2; g2.gain.value = 0.25;
-      o2.connect(g2); g2.connect(g); o.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.24, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
-      o.start(t0); o2.start(t0); o.stop(t0 + 1.05); o2.stop(t0 + 1.05);
-    } catch (e) {}
+    audioTone(freq, 0, 1.0);
   };
 
   const toggleExtra = (s) => {
@@ -428,8 +429,20 @@ export default function SongPractice() {
                     <div className="eyebrow" style={{ marginBottom: 8, color: C.blue }}>How to play it</div>
                     <div className="mono" style={{ fontSize: 12.5, lineHeight: 1.6 }}>{song.tone.notes || "No notes yet — hit ✎ tone."}</div>
                     {song.tone.fx?.dly?.on && song.tone.fx.dly.ms > 0 && (
-                      <div className="mono" style={{ fontSize: 11, color: C.cyan, marginTop: 8 }}>
-                        ⏱ tap the amp's TAP button ≈ every {song.tone.fx.dly.ms}ms ({msToBpm(song.tone.fx.dly.ms)} BPM)
+                      <div className="mono" style={{ fontSize: 11, color: C.cyan, marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span>⏱ tap the amp's TAP button ≈ every {song.tone.fx.dly.ms}ms ({msToBpm(song.tone.fx.dly.ms)} BPM)</span>
+                        {met && (
+                          // The delay time IS the song's pulse — hand it to the click and
+                          // you have a metronome to set the amp's tap tempo against.
+                          <button
+                            className="btn"
+                            style={{ padding: "4px 7px" }}
+                            onClick={() => met.setFromBpm(msToBpm(song.tone.fx.dly.ms), { start: true })}
+                            title={`Start the click at ${msToBpm(song.tone.fx.dly.ms)} BPM so you can set the amp's tap tempo to it`}
+                          >
+                            → set the click
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -438,6 +451,12 @@ export default function SongPractice() {
               </>
             )}
           </div>
+
+          {/* anything written for this song's solo */}
+          <SoloLinks song={song} sec={sec} go={go} />
+
+          {/* borrowed chords — the parallel minor, in THIS song's key */}
+          <BorrowedPanel song={song} muted={muted} extras={extras} toggleExtra={toggleExtra} />
 
           {/* vocabulary panel */}
           <div style={{ marginTop: 16 }}>
@@ -466,6 +485,186 @@ export default function SongPractice() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+
+/* ==================== borrowed chords, per song ==================== */
+
+/**
+ * MODAL INTERCHANGE, WIRED TO THE ACTUAL SONG.
+ *
+ * The Chord Builder teaches borrowing in the abstract. Here it is aimed at the
+ * song in front of you: the six chords worth borrowing, resolved into this
+ * song's key, each one saying which diatonic chord it replaces and — the part
+ * that matters — which single note it drags in from the parallel minor.
+ *
+ * "＋ add to the neck" writes that note into the song's own `extras`, so the
+ * borrowed colour shows up as a dashed violet note on the fretboard and stays
+ * there next time you open the song. The vocabulary mechanism was already
+ * built for exactly this; it just had no theory pointing at it.
+ *
+ * A minor-key song gets the move that actually matters there instead: the
+ * harmonic-minor V7, which is where the raised 7th comes from.
+ */
+function BorrowedPanel({ song, muted, extras, toggleExtra }) {
+  const [open, setOpen] = useState(false);
+  const [pick, setPick] = useState(0);
+
+  const rootPc = noteNameToPc(song.root);
+  const names = useMemo(() => buildNoteNames(song.root), [song.root]);
+
+  const list = useMemo(
+    () => (song.minor ? [] : borrowedChords(rootPc, { key: song.root })),
+    [rootPc, song.minor, song.root]
+  );
+  const minorV = useMemo(
+    () => (song.minor ? dominantOf(rootPc, "minor", song.root) : null),
+    [rootPc, song.minor, song.root]
+  );
+
+  const hear = (pc, quality, at = 0) => {
+    if (muted) return;
+    rootPosition(pc, quality, 48).forEach((m, i) => playMidi(m, at + i * 0.03, 1.6));
+  };
+
+  const b = list[pick];
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="eyebrow" style={{ margin: 0 }}>
+          {song.minor
+            ? `Raise the 7 — the chord that makes ${song.root} minor pull home`
+            : `Borrow from ${song.root} minor — the chord that changes the colour`}
+        </div>
+        <button className="btn" style={{ padding: "3px 9px" }} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          {open ? "− hide" : "+ show"}
+        </button>
+      </div>
+
+      {open && song.minor && minorV && (
+        <>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+            <button className="btn" onClick={() => hear(rootPc, "min")}>▶ i · {song.root}m</button>
+            <button className="btn" onClick={() => hear((rootPc + 7) % 12, "min")}>▶ v · {names[(rootPc + 7) % 12]}m</button>
+            <button className="btn" style={{ borderColor: C.sun, color: C.sun }} onClick={() => { hear(minorV.rootPc, "dom7"); hear(rootPc, "min", 1.0); }}>
+              ▶ {minorV.label} → {song.root}m
+            </button>
+            <button
+              className={"btn" + (extras.has(11) ? " on" : "")}
+              onClick={() => toggleExtra(11)}
+              title="Put the raised 7th on the neck as a colour note"
+            >
+              {extras.has(11) ? "✓ 7 on the neck" : "＋ add the 7 to the neck"}
+            </button>
+          </div>
+          <div className="mono" style={{ fontSize: 12.5, color: C.ink, marginTop: 10, lineHeight: 1.65 }}>
+            Natural minor's v is MINOR — no leading tone, so it slides home instead of pulling. Raise the 7
+            ({names[(rootPc + 11) % 12]}) and v becomes {minorV.label}: that one note is the difference between
+            a progression that drifts and one that lands, and it is what almost every minor-key song actually
+            plays. Added to the neck it shows as a dashed violet note — a target over the V, not a resting
+            place over the i.
+          </div>
+        </>
+      )}
+
+      {open && !song.minor && b && (
+        <>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+            {list.map((x, i) => (
+              <button key={x.rn} className={"btn" + (pick === i ? " on" : "")} style={{ padding: "4px 9px" }} onClick={() => setPick(i)}>
+                {x.rn} <span style={{ opacity: 0.6, fontSize: 10 }}>{x.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+            <button className="btn" onClick={() => hear((rootPc + [0, 2, 4, 5, 7, 9, 11][b.replaces]) % 12, ["maj", "min", "min", "maj", "maj", "min", "dim"][b.replaces])}>
+              ▶ {b.replacesRn} · {b.replacesLabel}
+            </button>
+            <span className="mono" style={{ color: C.muted, fontSize: 12 }}>↔</span>
+            <button className="btn" style={{ borderColor: C.violet, color: C.violet }} onClick={() => hear(b.rootPc, b.quality)}>
+              ▶ {b.rn} · {b.label}
+            </button>
+            <button className="btn" onClick={() => { hear(b.rootPc, b.quality); hear(rootPc, "maj", 1.0); }}>
+              ▶ {b.rn} → I
+            </button>
+            {b.newNotes.map((pc) => {
+              const semis = ((pc - rootPc) % 12 + 12) % 12;
+              return (
+                <button
+                  key={pc}
+                  className={"btn" + (extras.has(semis) ? " on" : "")}
+                  onClick={() => toggleExtra(semis)}
+                  title="Add this note to the fretboard for this song"
+                >
+                  {extras.has(semis) ? "✓ " : "＋ "}{pcName(pc, song.root, "flat")} ({DEG[semis]})
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mono" style={{ fontSize: 12.5, color: C.ink, marginTop: 10, lineHeight: 1.65 }}>
+            {b.why} Swap <b>{b.replacesLabel}</b> for <b style={{ color: C.violet }}>{b.label}</b> and the note that
+            arrives is <b style={{ color: C.violet }}>{b.newNotes.map((pc) => pcName(pc, song.root, "flat")).join(" and ")}</b> —
+            add it to the neck and you will see it sitting a fret below a note you already know. That single
+            semitone is what makes the chorus sound like that.
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+/* ==================== solos written for this song ==================== */
+
+/**
+ * THE BRIDGE TO THE SOLO PLAYER.
+ *
+ * A solo attached to a song is the real one, entered note for note from a
+ * published tab. It is the one thing in this app that CLAIMS to be the record,
+ * so it says so on the button and the player flies an unverified banner over
+ * everything the tab did not actually state.
+ */
+function SoloLinks({ song, sec, go }) {
+  const tabs = useMemo(() => tabsForSong(song.id), [song.id]);
+  if (!tabs.length) return null;
+
+  const open = (id) => {
+    try { localStorage.setItem("solo.req", id); } catch {}
+    if (go) go("solo");
+  };
+
+  const isSoloSection = sec && /solo/i.test(sec.name || "");
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="eyebrow" style={{ marginBottom: 8 }}>
+        {isSoloSection ? "For this solo section" : "Written for this song"}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            className="btn"
+            style={{ borderColor: C.sun, color: C.sun }}
+            onClick={() => open(t.id)}
+            title={t.meta.note}
+          >
+            ▶ {t.meta.title}{" "}
+            <span style={{ opacity: 0.6, fontSize: 10 }}>
+              the real solo · {t.meta.key} {SCALES[t.meta.scaleId].name}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="mono" style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
+        The solo{tabs.length > 1 ? "s are" : " is"} entered from a tab — the frets are the record's,
+        the rhythm is an inference, and the player says which is which.
+      </div>
     </div>
   );
 }
