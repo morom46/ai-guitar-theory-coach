@@ -4,7 +4,7 @@ import {
   noteNameToPc, pcName, scalesContaining, noteAgainstChord,
 } from "../theory/engine.js";
 import { positionsFor, boxAt } from "../theory/positions.js";
-import { C, keyToneStyle, RAINBOW, degBase } from "../ui/theme.js";
+import { C, keyToneStyle, RAINBOW, degBase, chordToneStyle } from "../ui/theme.js";
 import { playMidi, setAmp } from "../audio/engine.js";
 import { ampFromTone, ampSummary } from "../audio/amp.js";
 import { GUITAR } from "../data/tones.js";

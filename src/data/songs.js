@@ -168,6 +168,15 @@ export const SEED_SONGS = [
       // in F# major, so the parent scale is the same one the chorus uses.
       sec("n86c", "Solo", "F#", "major", 11),
     ] }),
+  S("n87", "Choo Lo", "The Local Train", "B", "major",
+    T("Super Crunch", 6, 6, 1, 7, { d: ["Analogue", 3, 400], r: ["Hall", 4] }, "Pushed British crunch · bridge humbucker", "Outro solo tone: bridge HB, enough gain to hold a bent note for three bars but not so much that the eighth-note shake in bar 124 turns to mush. Delay and a big reverb do the sustaining, not the gain knob."),
+    { sections: [
+      // The loop that runs under everything — B-E-A-C#m, read off the bass.
+      sec("n87a", "The B-E-A-C#m loop", "B", "major", 4),
+      sec("n87b", "Outro solo — the low half", "B", "major", 9),
+      // Bars 124-128 sit at frets 17-21.
+      sec("n87c", "Outro solo — the top", "B", "major", 16),
+    ] }),
 
   /* == blues / blues-rock == */
   S("n25", "Pride and Joy", "Stevie Ray Vaughan", "E", "minorPent",

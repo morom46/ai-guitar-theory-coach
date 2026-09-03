@@ -327,3 +327,82 @@ describe("Slow Dancing in a Burning Room — the converted one", () => {
     expect(noteMidi(first, sd.meta) % 12).toBe(1); // Db
   });
 });
+
+describe("Choo Lo — the converted one", () => {
+  const choo = SEED_TABS.find((t) => t.id === "tab-choo-lo");
+  const barOf = (n) => Math.floor(n.startBeat / 4) + 117; // the tab's own numbering
+
+  it("is bars 117 to 137 — the outro solo, and nothing before it", () => {
+    // The request was the solo from bar 117 to the end. The tab runs to 142,
+    // but 138 onward is rests, so the last sounding bar is 137: twenty-one
+    // bars, eighty-four beats.
+    expect(soloEndBeat(choo)).toBe(84);
+    expect(choo.sections[0].name).toMatch(/^117-118 — /);
+    expect(choo.sections.at(-1).name).toMatch(/^132-137 — /);
+  });
+
+  it("is in B major, with exactly one note from outside it", () => {
+    // The claim in meta.note, asserted. B C# D# E F# G# A#.
+    const B_MAJOR = new Set([11, 1, 3, 4, 6, 8, 10]);
+    const strays = choo.notes.filter((n) => !B_MAJOR.has(pc(n, choo)));
+    expect(strays).toHaveLength(1);
+    expect(pc(strays[0], choo)).toBe(2); // D natural
+    expect(barOf(strays[0])).toBe(120); // passing through, on its way back to C#
+  });
+
+  it("restates bars 117-119 an octave up at 125-127", () => {
+    // The reason the document tells you to learn the first phrase first. Every
+    // pitch in the second phrase is a pitch from the first, twelve semitones
+    // higher — the repeats differ, the notes do not.
+    const pitches = (from, to) =>
+      choo.notes
+        .filter((n) => n.startBeat >= from && n.startBeat < to)
+        .map((n) => noteMidi(n, choo.meta));
+    const low = [...new Set(pitches(0, 12))].sort((a, b) => a - b);
+    const high = [...new Set(pitches(32, 44))].sort((a, b) => a - b);
+    expect(high).toEqual(low.map((m) => m + 12));
+  });
+
+  it("puts its one dissonance on the borrowed chord, then resolves it", () => {
+    // meta.note's second lesson, asserted end to end: the D# arrives as a #11
+    // over the bVII, is held while the chord turns to B and becomes its major
+    // 3rd, and only then moves to E.
+    const at = (beat) => choo.notes.find((n) => n.startBeat === beat);
+    expect(degreeOf(at(56.5), choo, 56.5).label).toBe("b5"); // bar 131, over A — the #11
+    expect(degreeOf(at(60), choo, 60).label).toBe("3"); // bar 132, same D#, over B
+    expect(at(56.5).fret).toBe(at(60).fret + 4); // G string 8 and B string 4: one D#
+    expect(pc(at(64), choo)).toBe(4); // bar 133 lands on E and stays
+    expect(at(64).durBeats).toBe(20);
+  });
+
+  it("holds one note as root, 4th and 5th across three consecutive bars", () => {
+    // The E that opens the solo, read against each of the first three chords.
+    const e = choo.notes[0];
+    expect(pc(e, choo)).toBe(4);
+    expect([0, 4, 8].map((b) => degreeOf(e, choo, b).label)).toEqual(["1", "4", "5"]);
+  });
+
+  it("takes tempo, time signature and chords from the source, not from me", () => {
+    expect(choo.tempo[0].bpm).toBe(146);
+    expect(choo.timeSig[0]).toMatchObject({ num: 4, den: 4 });
+    // Read off the bass track's roots, which walk on every beat.
+    expect(choo.harmony.slice(0, 8).map((h) => h.chord)).toEqual([
+      "E", "B", "A", "B", "C#m", "B", "A", "B",
+    ]);
+    expect(choo.meta.source).toMatch(/bass track/i);
+  });
+
+  it("keeps the bend that is held and the bend that is let back down", () => {
+    // Bar 118 bends and releases; bar 126 is the same phrase an octave up but
+    // the tab bends and holds. Reading one as the other is the mistake this
+    // catches — they look identical on the page.
+    const b118 = choo.notes.filter((n) => barOf(n) === 118);
+    const b126 = choo.notes.filter((n) => barOf(n) === 126);
+    expect(b118.map((n) => n.technique)).toContain("release");
+    expect(b126.map((n) => n.technique)).not.toContain("release");
+    // Every bend in the solo is a full step, as the tab's "full" marks say.
+    choo.notes
+      .filter((n) => n.bendSemitones)
+      .forEach((n) => expect(n.bendSemitones).toBe(2));
+  });
+});

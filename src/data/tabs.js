@@ -19,11 +19,14 @@
  * inspector are all driven off the schema in ./soloSchema.js. Enter a solo in
  * that shape and the player animates it without being told anything else.
  *
- * HOW `verified` READS HERE
+ * WHAT `meta.source` IS FOR
  * -------------------------
- * The FRETS are the tab's, transcribed faithfully. Everything the tab does not
- * carry — rhythm, tempo, bar alignment, the chords underneath — is inferred,
- * and `meta.unverified` says so until somebody checks it against the record.
+ * Every document says where it came from and, just as important, which parts
+ * of it the source actually carried. Four of these were entered from a picture
+ * of a tab, so the frets are the tab's but the rhythm and the chords are read
+ * in; two were converted from a player's own note data, so the durations and
+ * techniques are the transcription's too. That line is the difference, and it
+ * is worth reading before trusting a bar.
  */
 
 import { normaliseSolo, soloEndBeat } from "./soloSchema.js";
@@ -1365,6 +1368,171 @@ const ALONE = {
  * long song is learned a piece at a time.
  */
 
+/* ================================================================== */
+/* CHOO LO — the outro solo, bars 117-137                             */
+/* ================================================================== */
+
+const CHOO_LO = {
+  id: "tab-choo-lo",
+  meta: {
+    title: "Choo Lo — the outro solo",
+    artist: "The Local Train · transcription, converted from tab",
+    key: "B",
+    mode: "major",
+    scaleId: "major",
+    songIds: ["n87"],
+    capo: 0,
+    source:
+      "songsterr.com/a/wsa/local-train-choo-lo-tab-s735489 — bars 117-137, converted from the " +
+      "player's own note data, so every fret, duration and bend below is the transcription's " +
+      "rather than a reading of a picture of it. The chord under each bar is read off the bass " +
+      "track of that same transcription, which walks the root on every beat and leaves no doubt.",
+    note:
+      "B major, and in twenty-one bars there is exactly one note from outside it — the D natural " +
+      "passing through bar 120 on its way back to C#. Everything else is the plain major scale, " +
+      "which makes this the best solo here for hearing what the CHORDS are doing rather than what " +
+      "the scale is. Two things to watch for. First: bars 125-127 are bars 117-119 again an octave " +
+      "up — the same E, the same full-step bend off it, the same drop to C# — so learning the first " +
+      "phrase buys you most of the second. It is not a literal copy: the octave version trims one " +
+      "repeated note in each of the last two bars, and bar 128 gives up the descent for two long " +
+      "Bs. Second, and this is the real lesson: the loop underneath is E-B-A-B then C#m-B-A-B, so " +
+      "the same few notes keep changing job as it turns. The E you hold in bar 117 is the root of " +
+      "the chord under it. In bar 118 the same E is the 4th. In bar 119 it is the 5th. One note, " +
+      "three meanings, and nothing moved but the band. The sharpest moment in the solo is bar 131, " +
+      "where the D# lands six semitones over the A — a #11, which the degree ring spells b5, and " +
+      "either way the one properly sour note in twenty-one bars. " +
+      "Then watch what becomes of it: bar 132 holds that same D# while the chord turns to B, where " +
+      "it is the major 3rd and suddenly sweet, and only then does it step up to E and stay there " +
+      "for five bars. Dissonant, consonant, resolved — one note doing all of it.",
+  },
+  tempo: [{ atBeat: 0, bpm: 146 }],
+  timeSig: [{ atBeat: 0, num: 4, den: 4 }],
+
+  // Labelled with the tab's OWN bar numbers, so a section looped here is
+  // findable on the page it came from.
+  sections: [
+    at("c117", "117-118", "the E, and the first full bend", 0, 8),
+    at("c119", "119-120", "the answer, down to the B", 8, 16),
+    at("c121", "121-123", "the long B, held over the bar line", 16, 28),
+    at("c124", "124", "the G#-B shake", 28, 32),
+    at("c125", "125-128", "the same phrase, an octave up", 32, 48),
+    at("c129", "129-131", "the D# figure, back down low", 48, 60),
+    at("c132", "132-137", "D# to E, and out", 60, 84),
+  ],
+
+  // I-IV-bVII-ii in B major, one chord per bar, twice round; then the ending
+  // slows to two bars a chord. Taken from the bass track's roots.
+  harmony: [
+    ...cycle(["E", "B", "A", "B", "C#m", "B", "A", "B"], 1, 16),
+    { atBeat: bar(17), chord: "E" },
+    { atBeat: bar(19), chord: "B" },
+    { atBeat: bar(21), chord: "A" },
+  ],
+
+  notes: [
+    /* --- 117 — the E, and the first full bend ------------------- */
+    // G string 9 is E, 11 is F#; the bend takes that F# a whole step to G#.
+    N(0, 2, 9, 2.5, { accent: true }),
+    N(2.5, 2, 11, 0.5, bend(2)),
+    N(3, 2, 11, 0.5, release(2)),
+    N(3.5, 2, 9, 0.5),
+
+    /* --- 118 — the same bend, given a whole bar ----------------- */
+    N(4, 2, 11, 2, { accent: true }),
+    N(6, 2, 11, 1, bend(2)),
+    N(7, 2, 11, 0.5, release(2)),
+    N(7.5, 2, 11, 0.25),
+    N(7.75, 2, 9, 0.25),
+
+    /* --- 119 — the answer, one note dropped to the D string ----- */
+    // The 11 at beat 10.5 is on the D string: C#, an octave below the C# that
+    // turns up in the same place in bar 127.
+    N(8, 2, 11, 0.5),
+    N(8.5, 2, 9, 0.5),
+    N(9, 2, 9, 1.5),
+    N(10.5, 3, 11, 0.5),
+    N(11, 2, 9, 0.5),
+    N(11.5, 2, 11, 0.5),
+
+    /* --- 120 — down to the B ------------------------------------ */
+    // The 7 is a D natural — the one accidental in the whole solo, and it is
+    // gone in a sixteenth.
+    N(12, 2, 6, 1),
+    N(13, 2, 6, 0.5),
+    N(13.5, 2, 7, 0.25),
+    N(13.75, 2, 6, 0.25),
+    N(14, 2, 4, 2),
+
+    /* --- 121-123 — the long B ----------------------------------- */
+    // Bent up and left there: the tab bends and never marks a release, so the
+    // pitch stays at C# under the notes that follow.
+    N(16, 1, 12, 3, { ...bend(2), accent: true }),
+    N(19, 1, 12, 0.5),
+    N(19.5, 1, 12, 3),
+    N(22.5, 2, 11, 0.5),
+    N(23, 1, 9, 0.5),
+    N(23.5, 1, 12, 0.5),
+    N(24, 1, 12, 2, bend(2)),
+    N(26, 1, 12, 2),
+
+    /* --- 124 — the shake ---------------------------------------- */
+    // Straight eighths alternating B string 21 (G#) with high E 19 (B).
+    N(28, 1, 21, 0.5),
+    N(28.5, 0, 19, 0.5),
+    N(29, 0, 19, 0.5),
+    N(29.5, 1, 21, 0.5),
+    N(30, 0, 19, 0.5),
+    N(30.5, 1, 21, 0.5),
+    N(31, 0, 19, 0.5),
+    N(31.5, 1, 21, 0.5),
+
+    /* --- 125-128 — bars 117-119 again, an octave up -------------- */
+    // B string 17 is the same E as G string 9; the 17-to-19 bend is the same
+    // whole step as 9-to-11 was. Then it moves to the top string and does bar
+    // 118 and 119 up there too, before simplifying into two long Bs.
+    N(32, 1, 17, 2.5, { accent: true }),
+    N(34.5, 1, 19, 1, bend(2)),
+    N(35.5, 1, 19, 0.25),
+    N(35.75, 1, 17, 0.25),
+
+    N(36, 0, 14, 2, { accent: true }),
+    // Bar 118 bent this and let it back down; up here the tab bends and holds.
+    N(38, 0, 14, 1.5, bend(2)),
+    N(39.5, 0, 14, 0.25),
+    N(39.75, 0, 12, 0.25),
+
+    N(40, 0, 14, 0.5),
+    N(40.5, 0, 12, 1),
+    N(41.5, 0, 12, 1),
+    N(42.5, 1, 14, 0.5),
+    N(43, 0, 12, 1),
+
+    N(44, 0, 19, 2, { accent: true }),
+    N(46, 0, 19, 2),
+
+    /* --- 129-131 — the D# figure -------------------------------- */
+    // G string 8 is D#. Bar 131 sits on it over the A chord, where it is the
+    // #11 — the one genuinely dissonant colour in the solo.
+    N(48, 2, 8, 3, { accent: true }),
+    N(51, 2, 8, 0.5),
+    N(51.5, 2, 8, 3),
+    N(54.5, 2, 6, 0.5),
+    N(55, 2, 8, 0.5),
+    N(55.5, 2, 9, 1),
+    N(56.5, 2, 8, 0.5),
+    N(57, 2, 9, 0.5),
+    N(57.5, 2, 11, 1),
+    N(58.5, 2, 9, 0.5),
+    N(59, 2, 11, 1),
+
+    /* --- 132-137 — D# to E, and out ----------------------------- */
+    // B string 4 is D#, the third of the B chord under it; B string 5 is E,
+    // the root of the E chord it lands on. Five bars of one note.
+    N(60, 1, 4, 4),
+    N(64, 1, 5, 20),
+  ],
+};
+
 const SLOW_DANCING = {
   id: "tab-slow-dancing",
   meta: {
@@ -1395,7 +1563,9 @@ const SLOW_DANCING = {
 
 /* ================================================================== */
 
-export const SEED_TABS = [PURPLE_RAIN, NOVEMBER_RAIN, GENTLY_WEEPS, ALONE, SLOW_DANCING].map(normaliseSolo);
+export const SEED_TABS = [PURPLE_RAIN, NOVEMBER_RAIN, GENTLY_WEEPS, ALONE, CHOO_LO, SLOW_DANCING].map(
+  normaliseSolo,
+);
 
 /** Transcriptions entered for a given song in the library. */
 export const tabsForSong = (songId, list = SEED_TABS) =>
