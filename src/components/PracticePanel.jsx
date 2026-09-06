@@ -1,14 +1,16 @@
 import React from "react";
-import SpotifyRecent from "./SpotifyRecent.jsx";
 import { C } from "../ui/theme.js";
 
 /**
- * PRACTICE PANEL — shared by Chord Builder & Number System.
+ * PRACTICE PANEL — rendered at the foot of Songs & Tones.
  * Two ways to take theory to the fretboard with real audio:
  *   1) Solo backing tracks — dynamic YouTube searches for the current key.
  *   2) Songs commonly in this key — curated titles, each linking out to a
  *      YouTube + Ultimate-Guitar search (search URLs never rot).
- * Static site, so everything is an outbound link (no API, no backend).
+ *
+ * Everything here is an outbound search link: no API, no account, no backend,
+ * nothing to keep working. That is the whole design, and it is why this panel
+ * outlived the Spotify page it used to sit under.
  */
 
 const ytSearch = (q) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
@@ -38,7 +40,7 @@ function LinkBtn({ href, children, primary }) {
   );
 }
 
-export default function PracticePanel({ keyLabel, tonality, keyId, spotify = true }) {
+export default function PracticePanel({ keyLabel, tonality, keyId }) {
   const penta = tonality === "major" ? "major pentatonic" : "minor pentatonic";
   const backing = [
     { label: `▶ ${keyLabel} ${tonality} jam`, url: ytSearch(`${keyLabel} ${tonality} guitar backing track`) },
@@ -55,8 +57,6 @@ export default function PracticePanel({ keyLabel, tonality, keyId, spotify = tru
         .pp-song .t{ font-family: ui-monospace, monospace; font-size: 13px; color: var(--ink); flex:1 1 200px; }
         .pp-tiny{ font-size: 11px; padding: 4px 8px; }
       `}</style>
-
-      {spotify && <SpotifyRecent />}
 
       <div className="eyebrow" style={{ marginBottom: 6 }}>🎧 Solo backing tracks — opens YouTube for {keyLabel} {tonality}</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

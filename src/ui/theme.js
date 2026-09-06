@@ -24,7 +24,6 @@ export const C = {
   gridBold: "var(--grid-bold)",
   surface: "var(--surface)",       // subtle raised background (buttons, chips)
   surfaceLo: "var(--surface-lo)",  // even subtler (cards, idle segments)
-  spotify: "#1DB954",
 };
 
 // Roy G Biv — one colour per scale degree (1-7); the root (1) is red.

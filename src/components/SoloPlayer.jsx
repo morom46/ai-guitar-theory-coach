@@ -71,9 +71,9 @@ export default function SoloPlayer() {
   // it can show you what to dial — and play itself through the same settings.
   const songs = useMemo(() => loadSongs(), []);
 
-  // Songs & Tones can send you here from a song's solo section, the same way
-  // the Spotify page hands a key to the Decoder: one localStorage key, read
-  // once and cleared, so a refresh does not keep re-opening the same solo.
+  // Songs & Tones can send you here from a song's solo section: one
+  // localStorage key, read once and cleared, so a refresh does not keep
+  // re-opening the same solo.
   const [soloId, setSoloId] = useState(() => {
     try {
       const req = localStorage.getItem("solo.req");

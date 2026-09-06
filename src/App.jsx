@@ -6,7 +6,6 @@ import NumberSystem from "./components/NumberSystem.jsx";
 import ScaleLab from "./components/ScaleLab.jsx";
 import SongPractice from "./components/SongPractice.jsx";
 import SoloPlayer from "./components/SoloPlayer.jsx";
-import SpotifyPage from "./components/SpotifyPage.jsx";
 import TheoryPage from "./components/TheoryPage.jsx";
 import ListenPage from "./components/ListenPage.jsx";
 import TransportBar from "./components/TransportBar.jsx";
@@ -35,7 +34,6 @@ const NAV = [
   {
     group: "Tools",
     items: [
-      { id: "spotify", ic: "♫", label: "Spotify", title: "Spotify — recently played, keys, send to practice", color: "#1DB954" },
       { id: "ear", ic: "🎧", label: "Ear", title: "Ear Trainer — listen & identify" },
       { id: "listen", ic: "🎤", label: "Listen", title: "Listen — tuner, and drills the app checks by ear (uses your microphone)" },
     ],
@@ -47,12 +45,7 @@ const loadTheme = () => {
 };
 
 export default function App() {
-  // If we're returning from the Spotify OAuth redirect (?code=...), open the
-  // Spotify page so SpotifyRecent can finish the token exchange.
-  const [active, setActive] = useState(() => {
-    try { if (new URL(window.location.href).searchParams.get("code")) return "spotify"; } catch {}
-    return "decoder";
-  });
+  const [active, setActive] = useState("decoder");
 
   // dark ↔ warm light — flips every CSS variable (see index.css / ui/theme.js)
   const [theme, setTheme] = useState(loadTheme);
@@ -67,7 +60,6 @@ export default function App() {
     if (active === "listen") return <ListenPage />;
     if (active === "solo") return <SoloPlayer />;
     if (active === "songs") return <SongPractice go={setActive} />;
-    if (active === "spotify") return <SpotifyPage go={setActive} />;
     if (active === "tones") return <SongPractice />; /* old Tones page now lives inside Songs */
     if (active === "chord") return <ChordBuilder />;
     if (active === "numbers") return <NumberSystem />;

@@ -68,7 +68,6 @@ const PAGES = [
   { id: "chord", label: "Chords", expect: null },
   { id: "numbers", label: "Numbers", expect: null },
   { id: "songs", label: "Songs & Tones", expect: null },
-  { id: "spotify", label: "Spotify", expect: null },
   { id: "ear", label: "Ear", expect: "THE EAR TRAINER" },
   { id: "listen", label: "Listen", expect: "THE APP LISTENS BACK" },
 ];
@@ -86,6 +85,10 @@ const TABS = [
   { page: "Scales", tab: "Build it from the formula", expect: "W–W–H–W–W–W–H" },
   { page: "Scales", tab: "Intervals as shapes", expect: "across G–B" },
   { page: "Numbers", tab: "The circle", expect: "pivot through" },
+  // The practice-links panel moved here when the Spotify page went. It has no
+  // tab of its own — it is the foot of the page — and nothing else in this
+  // suite would notice if it stopped rendering.
+  { page: "Songs & Tones", tab: null, expect: "Solo backing tracks" },
 ];
 
 const problems = [];

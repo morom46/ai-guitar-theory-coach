@@ -84,13 +84,12 @@ An offline, local song library that maps your real repertoire onto the fretboard
 - Ships with seven seed songs (Led Zeppelin, Mac Miller, Dire Straits, Guns N' Roses,
   …); add your own anytime.
 
-### Spotify integration
+### Practice links
 
-Connect Spotify (PKCE — no secret, no backend) to see your **recently played tracks**
-alongside the song library. Because Spotify removed audio-features from its API
-(Nov 2024), keys come from an optional **key-proxy worker** (see `worker/`) that wraps
-the GetSongBPM API. With a proxy set, the key of each recent track appears
-automatically; without one, the panel falls back to manual Tunebat / YouTube links.
+At the foot of the page: pick a key and get **backing tracks** and **songs commonly in
+that key**, each linking out to a YouTube or Ultimate-Guitar search. It starts on the
+selected song's key. Every link is an outbound search — no account, no API key, nothing
+that can stop working.
 
 ## ✦ The Solo Player
 
@@ -348,15 +347,9 @@ src/
     SoloPlayer.jsx                  ✦ solo playback page — transport, modes, inspector
     SoloOverlay.jsx                 ✦ the note highway (one canvas, no React per frame)
     Neck.jsx                        the one shared fretboard (+ `overlay` slot)
-    SpotifyRecent.jsx               Spotify recently-played + key lookup
-    PracticePanel.jsx               shared backing-track & song panel (02 & 03)
+    PracticePanel.jsx               backing-track & curated-song links, per key
   App.jsx                           app shell — tab nav, section routing
   main.jsx                          entry point
-
-worker/
-  getkey.js                         Cloudflare Worker — proxies GetSongBPM API,
-                                    hides the key, adds CORS headers
-  README.md                         deploy instructions (free, ~5 min)
 ```
 
 The theory engine is deliberately separated from the UI: every feature consumes the
@@ -364,6 +357,6 @@ same primitives, so the music theory is defined exactly once.
 
 ## Tech
 
-React 19 + Vite. No runtime dependencies beyond React — audio is raw Web Audio API,
-Spotify auth is PKCE (no server), the key-proxy worker is a single Cloudflare Workers
-file (~50 lines).
+React 19 + Vite. No runtime dependencies beyond React — audio is raw Web Audio API.
+No backend, no accounts, no third-party APIs: the app is a static bundle that keeps
+everything in your own browser's localStorage.

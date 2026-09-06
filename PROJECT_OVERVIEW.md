@@ -71,9 +71,7 @@ src/
     NumberSystem.jsx       Lesson 03
     EarTrainer.jsx         Practice (🎧 icon, no number)
     SongPractice.jsx       Practice (🎵 icon) — offline song library w/ sections
-    SpotifyPage.jsx        ♫ tab — dedicated Spotify page (send-to actions)
-    PracticePanel.jsx      backing-track + song-search links (used by SpotifyPage)
-    SpotifyRecent.jsx      Spotify recently-played + auto key lookup
+    PracticePanel.jsx      backing-track + song-search links (foot of Songs & Tones)
     TransportBar.jsx       the metronome, docked to every page
     ListenPage.jsx         🎤 tab — tuner + "find the note" mic drill
 test/
@@ -88,9 +86,6 @@ test/
   pitch.test.js            pitch detector, in cents, across the whole range
   clock.test.js            metronome scheduling maths
   browser-smoke.mjs        drives the real app in Chromium (needs playwright)
-worker/
-  getkey.js                Cloudflare Worker proxy for GetSongBPM (auto key)
-  README.md                worker deploy steps
 .github/workflows/deploy.yml   Pages CI
 vite.config.js, index.html, package.json
 ```
@@ -145,8 +140,7 @@ gets the harmonic-minor V7, because natural minor's v cannot pull),
 Four numbered lesson tabs: **01 Fretboard Decoder · 02 Chord Builder · 03 Number
 System · 04 The Scale Lab**.
 Then a distinct accent **▶ LIVE** tab, a divider, and three icon-only buttons:
-**🎵 Song Practice**, **♫ Spotify** (green), **🎧 Ear Trainer**. Active state via `aria-current="page"`.
-If the URL has `?code=` (Spotify OAuth return), App opens the ♫ page so the token exchange completes.
+**🎵 Song Practice**, **🎧 Ear Trainer**. Active state via `aria-current="page"`.
 
 ### 01 — Fretboard Decoder (`FretboardDecoder.jsx`) — keystone
 A 24-fret neck (standard tuning) that decodes pitch through modes:
@@ -167,8 +161,6 @@ A 24-fret neck (standard tuning) that decodes pitch through modes:
   `♪ sound`.
 - **Spec readout** + **"why"** card; tap any node to hear it (Web Audio pluck).
 - Minimal animated **tooltips** (ⓘ) at key labels.
-- On mount, consumes `localStorage decode.req` (a key string queued by the ♫ Spotify
-  page's **▸ decode** button) and loads it via handlePickKey (pentatonic by default).
 
 ### 02 — Chord Builder (`ChordBuilder.jsx`) — four tabs
 **Build a chord** — the original: pick root + quality (19 of them, in three family
@@ -407,27 +399,17 @@ mode the mic is opened, judging arms ~1.9s after the prompt finishes (so the
 app's own output isn't judged), and you answer by playing the note on the
 guitar. Any octave counts. Switching back to Tapping releases the mic.
 
-### ♫ Spotify page (`SpotifyPage.jsx`) — NEW dedicated page
-Hosts SpotifyRecent (below) with per-track **send-to actions**: **▸ decode** (queue key in
-`decode.req` → Fretboard Decoder), **＋ songs** (append to `songs.v1` + select via
-`songs.sel` → Song Practice), **＋ live** (append to `player.v1` + `player.sel` → Live
-Player, one default section). Key parsing "Em"/"F#m"/"C" → root+minor. Below: a pick-any-key
-selector + PracticePanel (`spotify={false}`) for backing tracks & curated songs. SpotifyRecent
-gained an `actions(track, key)` render prop; PracticePanel a `spotify` prop (default true).
+### Practice links (`PracticePanel.jsx`) — foot of Songs & Tones
+A key picker (defaulting to the selected song's key, re-syncing when you switch songs)
+over two link lists: **backing tracks** (YouTube searches for `<key> <tonality>` jam /
+blues / pentatonic) and **songs commonly in this key** (a curated `SONGS` table, each
+row linking to a YouTube and an Ultimate-Guitar search). Search URLs rather than
+deep links, so nothing rots. No API, no account, no backend.
 
-### Spotify + auto key (`SpotifyRecent.jsx`, used by SpotifyPage)
-- PKCE login (no secret). **Client ID is hardcoded** in the file
-  (`CLIENT_ID = "d0df00eaf98b442c85099d732a3f1587"`) — a Spotify Client ID is public-safe.
-- Reads `/me/player/recently-played`. Redirect URI = current origin+path
-  (registered: the Pages URL; for local use `http://127.0.0.1:<port>/ai-guitar-theory-coach/`,
-  NOT `localhost`).
-- Spotify removed key data (Nov 2024), so keys come from an optional **key-proxy**: paste a
-  worker URL → each track shows its key automatically (badge links to a backing track);
-  without a proxy it falls back to Tunebat "🔑 key" links.
-
-### Key-proxy worker (`worker/getkey.js`)
-One-file Cloudflare Worker wrapping the GetSongBPM API (hides API key, adds CORS).
-Returns `{key,tempo}` for `?q=<title artist>`. Deploy steps in `worker/README.md`.
+Lives in `SongPractice.jsx`'s `PracticeLinks` wrapper. It used to sit under a ♫ Spotify
+page (PKCE login → recently-played → auto key lookup via a Cloudflare key-proxy worker);
+that page, `SpotifyRecent.jsx` and `worker/` were removed before the app went public —
+the panel is what was worth keeping.
 
 ---
 
@@ -437,8 +419,11 @@ Returns `{key,tempo}` for `?q=<title artist>`. Deploy steps in `worker/README.md
 record — what each drill has learned about you) · `audio.v1` (voice/volume/mute)
 · `met.v1` + `met.open` (metronome) · `drone.v1` (drone) · `tuner.a4`
 · `songs.v1` (Song Practice) · `player.v1` (Live Player)
-· Spotify: `sp.token`, `sp.refresh`, `sp.exp`, `sp.verifier` · `key.proxy` (auto-key worker URL)
-· one-shot handoffs (read & removed on mount): `decode.req`, `songs.sel`, `player.sel`.
+· one-shot handoffs (read & removed on mount): `songs.sel`, `player.sel`, `solo.req`.
+
+Retired: `sp.token`, `sp.refresh`, `sp.exp`, `sp.verifier`, `key.proxy` and `decode.req`
+belonged to the removed Spotify page. Nothing reads them; installs from before the
+removal may still have them sitting in localStorage.
 
 ---
 
@@ -670,6 +655,7 @@ ui-sans-serif for body. Roy-G-Biv degree colours in `RAINBOW` (FretboardDecoder)
   ▦ tabs ↔ ▤ stack views, section editor, seeded Stairway + Sweet Child sections.
 - **♫ Spotify page:** dedicated nav page for recently-played + send-to (decode/songs/live);
   PracticePanel/SpotifyRecent embeds removed from lessons 01–03; OAuth return opens ♫ page.
+  *(Removed before public release — see "Practice links" above.)*
 - **Live Player (Phase 1):** new ▶ LIVE tab; MP3 + YouTube clock; sections roadmap with
   playhead/loop/speed; fretboard follows section scale+box; section editor; seeded Yellow Ledbetter.
 - **Song Practice page:** offline local library + vocabulary/in-between notes; seeded Mac Miller

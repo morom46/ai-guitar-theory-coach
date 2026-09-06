@@ -6,6 +6,7 @@ import { rootPosition } from "../theory/voicing.js";
 import { playMidi } from "../audio/engine.js";
 import { C, RAINBOW, degBase, keyToneStyle } from "../ui/theme.js";
 import Neck from "./Neck.jsx";
+import PracticePanel from "./PracticePanel.jsx";
 import AmpPanel, { PickupSwitch } from "./AmpPanel.jsx";
 import { AMP, GUITAR, msToBpm } from "../data/tones.js";
 import { loadSongs, saveSongs, defaultTone } from "../data/songs.js";
@@ -485,6 +486,11 @@ export default function SongPractice({ go }) {
           </div>
         </>
       )}
+
+      {/* Backing tracks and songs for any key. Outside the `song &&` block on
+          purpose: it is useful with nothing selected, and it is the one part
+          of the page that does not need a song at all. */}
+      <PracticeLinks song={song} />
     </div>
   );
 }
@@ -665,6 +671,51 @@ function SoloLinks({ song, sec, go }) {
         The solo{tabs.length > 1 ? "s are" : " is"} entered from a tab — the frets are the record's,
         the rhythm is an inference, and the player says which is which.
       </div>
+    </div>
+  );
+}
+
+
+/* ==================== practice links, any key ==================== */
+
+/**
+ * The foot of the page: pick a key, get backing tracks and songs commonly in
+ * it. Everything is an outbound YouTube / Ultimate-Guitar search, so there is
+ * no account to connect and nothing that can stop working.
+ *
+ * It starts on the selected song's key and re-syncs whenever you switch songs,
+ * which is what you want nine times in ten; the picker is there for the tenth,
+ * and a manual choice sticks until the next song change.
+ */
+function PracticeLinks({ song }) {
+  const [root, setRoot] = useState(song ? song.root : "A");
+  const [minor, setMinor] = useState(song ? !!song.minor : true);
+
+  const songId = song ? song.id : null;
+  useEffect(() => {
+    if (!song) return;
+    setRoot(song.root);
+    setMinor(!!song.minor);
+    // Keyed on the song, not the whole object: editing a tone must not yank
+    // the key picker back from underneath you.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [songId]);
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span className="eyebrow">Practice links for any key:</span>
+        <select className="inp" value={root} onChange={(e) => setRoot(e.target.value)} aria-label="Key">
+          {ROOTS.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <button className={"btn" + (!minor ? " on" : "")} onClick={() => setMinor(false)}>major</button>
+        <button className={"btn" + (minor ? " on" : "")} onClick={() => setMinor(true)}>minor</button>
+      </div>
+      <PracticePanel
+        keyLabel={root}
+        tonality={minor ? "minor" : "major"}
+        keyId={root + (minor ? "min" : "maj")}
+      />
     </div>
   );
 }

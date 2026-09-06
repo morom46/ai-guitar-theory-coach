@@ -84,7 +84,6 @@ export default function FretboardDecoder() {
   const [rainbow, setRainbow] = useState(false);
   const [boxOn, setBoxOn] = useState(false);
   const [boxStart, setBoxStart] = useState(0);
-  const [soloPenta, setSoloPenta] = useState(true);
   const met = useMetronome();
   const drone = useDrone();
   // A/B tab: where we are on the brightness ladder, and which neighbour the
@@ -364,28 +363,6 @@ export default function FretboardDecoder() {
     const d = diaMap[degree];
     return `${d.rn} - ${names[tPc]} ${d.q} · ${FUNCTION_NAME[d.fn]} — ${d.why}`;
   }, [mode, degree, rootPc, names, keyScale, diaMap]);
-
-  // Load a Spotify-detected key (e.g. "Em", "F#m", "C") onto the fretboard.
-  const handlePickKey = (keyStr) => {
-    if (!keyStr) return;
-    const minor = /m$/.test(keyStr) && !/maj$/i.test(keyStr);
-    const token = keyStr.replace(/m$/, "").trim();
-    if (!/^[A-Ga-g]/.test(token)) return;
-    const pc = noteNameToPc(token);
-    const rootName = ROOTS.find((r) => noteNameToPc(r) === pc) || "C";
-    setRoot(rootName);
-    setMode("scale");
-    setScaleId(soloPenta ? (minor ? "minorPent" : "majorPent") : (minor ? "aeolian" : "major"));
-  };
-
-  // A key queued from the Spotify page ("▸ decode") loads on arrival.
-  useEffect(() => {
-    try {
-      const req = localStorage.getItem("decode.req");
-      if (req) { localStorage.removeItem("decode.req"); handlePickKey(req); }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="page">
