@@ -1562,10 +1562,315 @@ const SLOW_DANCING = {
 };
 
 /* ================================================================== */
+/* IN ANY TONGUE — the solo, 4:56 to the piano outro                  */
+/* ================================================================== */
 
-export const SEED_TABS = [PURPLE_RAIN, NOVEMBER_RAIN, GENTLY_WEEPS, ALONE, CHOO_LO, SLOW_DANCING].map(
-  normaliseSolo,
-);
+/*
+ * Thirty-six bars off an ASCII tab, and the thing that made it enterable is
+ * that the tab timestamps itself. It prints ten wall-clock marks between 4:56
+ * and 6:14, and at its own stated 102bpm a 4/4 bar is 2.353 seconds — so every
+ * mark is a prediction about how many measures have gone by, and every mark
+ * agrees with the measures actually drawn. 5:40 lands on bar 20 (predicted
+ * 5:40.7), 5:59 on bar 28 (5:59.5), 6:14 on bar 35 (6:16). That is what pins
+ * the grid: one drawn measure is one bar, however wide it happens to be
+ * printed, and the solo is thirty-six of them. Without that agreement the bar
+ * lines below would be a guess, because ASCII tab carries no rhythm at all.
+ *
+ * What the tab does NOT carry, and is therefore read in here: the subdivision
+ * inside each bar. Note spacing is taken from the column each digit sits in,
+ * which is how the writer meant it read, but the eighths and sixteenths below
+ * are an interpretation of that spacing and not the transcription's.
+ *
+ * The two piano staves the tab includes for completeness — the [Solo - Piano
+ * Intro] and [Solo - Piano Outro] blocks, and the notes it puts in {} inside
+ * the solo — are left out. They are written as guitar frets, but they are not
+ * the guitar part, and a note highway that mixes the two teaches the wrong
+ * thing about who is playing what.
+ */
+
+const IN_ANY_TONGUE = {
+  id: "tab-in-any-tongue",
+  meta: {
+    title: "In Any Tongue — the solo",
+    artist: "David Gilmour · transcription, entered from tab",
+    // The tab's header says Cm, which is the song. This vamp is not: it is
+    // Fm-Ab-Db-Ab with an Eb turn, and the solo plays Db throughout and never
+    // a D natural. That is F natural minor — Ab major's relative — so the
+    // scale the neck should draw here is F aeolian, not C.
+    key: "F",
+    mode: "aeolian",
+    scaleId: "aeolian",
+    songIds: ["n88"],
+    capo: 0,
+    source:
+      "an ASCII tab of the solo alone (Rattle That Lock, 2015), which states its own key, tuning " +
+      "and tempo — 102bpm — and timestamps ten points between 4:56 and 6:14. The frets, the " +
+      "bends, the slides and the chord printed over each system are the tab's. The bar grid is " +
+      "confirmed against those timestamps; the subdivision inside each bar is read in from the " +
+      "column spacing. The piano staves it prints around and inside the solo are not included. " +
+      "The 6:02 and 6:09 section marks are computed from 102bpm rather than printed.",
+    note:
+      "Thirty-six bars, not one accidental. Every note is F-G-Ab-Bb-C-Db-Eb — F natural minor, " +
+      "which is Ab major seen from its sixth — and every bend lands on another note of it. So " +
+      "there is nothing here to learn about scale choice, and everything to learn about what the " +
+      "band does to a note after you have chosen it. " +
+      "Start with bars 1 and 3, which are the SAME BAR played twice: B string 18, pinch harmonic, " +
+      "bent a whole step and then a half step further. Bar 1 sits over Fm, where those three " +
+      "pitches are the root, the 2 and the b3 — you are pushing up into the chord. Bar 3 is " +
+      "identical under your fingers and sits over Ab, where the same three pitches are the 6, the " +
+      "7 and the ROOT. One shape, played twice, and the second time it is a different sentence. " +
+      "Watch the ring colours change while your hand does not move. " +
+      "Then bar 23, the sourest moment in the solo and still inside the scale: the phrase opens " +
+      "on high E 15 — a G — over the Db chord, where G is the #11 that the degree ring spells b5. " +
+      "It bends up to Ab, the 5, and drops straight back onto the G. Bar 31 does the same thing " +
+      "lower down, ending on G string 12 held over Db. " +
+      "Two mechanical things worth naming. The bends are long: bar 1 holds one for two beats " +
+      "before pushing it further, and bar 16 bends and releases across a bar line into the next " +
+      "chord. That is a sustain problem before it is a finger problem — see the tone. And bar 35 " +
+      "is a pre-bend: G string 10 is bent up to G BEFORE it is struck, then released down to F. " +
+      "The ear hears a note fall out of nowhere; the hand does all the work in silence. It " +
+      "resolves onto F over Fm — the root, the last note of the solo, held for a whole bar.",
+  },
+  // Both stated by the tab.
+  tempo: [{ atBeat: 0, bpm: 102 }],
+  timeSig: [{ atBeat: 0, num: 4, den: 4 }],
+
+  // One section per system of the tab, labelled with its timestamp so that a
+  // section looped here and a place on the record are the same thing. The
+  // marks at 6:02 and 6:09 are computed from 102bpm; the rest are printed.
+  sections: [
+    at("g1", "4:56", "the pinch-harmonic bend, twice", 0, 16),
+    at("g2", "5:05", "off the top, down to the D string", 16, 32),
+    at("g3", "5:13", "the half-step bend, held over a bar line", 32, 48),
+    at("g4", "5:24", "up to the top string", 48, 64),
+    at("g5", "5:35", "the Eb turn, and the descent", 64, 76),
+    at("g6", "5:40", "the fast run", 76, 88),
+    at("g7", "5:46", "the #11, and the pre-bend", 88, 100),
+    at("g8", "5:53", "sixteenths, answered low", 100, 112),
+    at("g9", "6:02", "the low bend figure", 112, 124),
+    at("g10", "6:09", "the last climb", 124, 136),
+    at("g11", "6:14", "the pre-bend, and out", 136, 144),
+  ],
+
+  // Two bars a chord: Fm-Ab-Db-Ab, then the same again with an Eb turn before
+  // the Fm comes back — a nine-chord loop, twice round, and the ending
+  // compresses. Read off the chord printed over each system of the tab.
+  harmony: [
+    { atBeat: bar(1), chord: "Fm" },
+    { atBeat: bar(3), chord: "Ab" },
+    { atBeat: bar(5), chord: "Db" },
+    { atBeat: bar(7), chord: "Ab" },
+    { atBeat: bar(9), chord: "Fm" },
+    { atBeat: bar(11), chord: "Ab" },
+    { atBeat: bar(13), chord: "Db" },
+    { atBeat: bar(15), chord: "Ab" },
+    { atBeat: bar(17), chord: "Eb" },
+    { atBeat: bar(19), chord: "Fm" },
+    { atBeat: bar(21), chord: "Ab" },
+    { atBeat: bar(23), chord: "Db" },
+    { atBeat: bar(25), chord: "Ab" },
+    { atBeat: bar(27), chord: "Fm" },
+    { atBeat: bar(29), chord: "Ab" },
+    { atBeat: bar(31), chord: "Db" },
+    { atBeat: bar(33), chord: "Ab" },
+    { atBeat: bar(34), chord: "Eb" },
+    { atBeat: bar(36), chord: "Fm" },
+  ],
+
+  notes: [
+    /* --- 1-2 — the bend, over Fm -------------------------------- */
+    // B string 18 is F, the root of the chord under it. `18b(20)` is a whole
+    // step up to G; `(20)b(21)` pushes the already-bent string a half step
+    // further, to Ab. Root, 2, b3 — climbing into the chord, and the tab marks
+    // the attack as a pinch harmonic.
+    N(0, 1, 18, 2, { ...bend(2), accent: true }),
+    N(2, 1, 18, 2, bend(3)),
+    N(4, 1, 18, 1, release(3)),
+    N(5, 1, 18, 1.5, vib),
+    // Two palm-muted notes, C then Eb, on the way out of the phrase.
+    N(6.5, 2, 17, 0.5),
+    N(7, 1, 16, 1),
+
+    /* --- 3-4 — the same bar again, over Ab ---------------------- */
+    // Identical fingering. Under it the chord has moved, so F is now the 6,
+    // G the major 7 and Ab the root. This is the whole point of the solo.
+    N(8, 1, 18, 2, { ...bend(2), accent: true }),
+    N(10, 1, 18, 2, bend(3)),
+    N(12, 1, 18, 1, release(3)),
+    N(13, 1, 18, 2, vib),
+    N(15, 3, 10, 0.5),
+    N(15.5, 2, 8, 0.5),
+
+    /* --- 5-6 — over Db ------------------------------------------ */
+    N(16, 2, 8, 0.5, slide(10)),
+    N(16.5, 2, 10, 2),
+    N(18.5, 1, 9, 0.5),
+    N(19, 1, 11, 1),
+    N(20, 1, 11, 1, { ...bend(2), accent: true }),
+    N(21, 1, 9, 1),
+    N(22, 2, 10, 1),
+    N(23, 2, 8, 0.5, slide(10)),
+    N(23.5, 2, 10, 0.5),
+
+    /* --- 7-8 — the whole phrase on the D string ----------------- */
+    // The one place the line drops to the D string and stays. `/11\10` is a
+    // grace slide up to Db and straight back — the 4th of the Ab under it,
+    // touched and let go.
+    N(24, 3, 10, 1),
+    N(25, 3, 10, 1, slide(11)),
+    N(26, 3, 11, 0.5, slide(10)),
+    N(26.5, 3, 10, 0.5),
+    N(27, 3, 8, 0.5),
+    N(27.5, 3, 10, 4),
+
+    /* --- 9-10 — the half-step bend ------------------------------ */
+    // G string 12 is G; `12b(13)` is a half step to Ab, the b3 of the Fm.
+    // Half-step bends are the hard ones — there is nowhere to arrive at.
+    N(33, 3, 10, 1),
+    N(34, 2, 10, 0.5),
+    N(34.5, 2, 12, 4, { ...bend(1), accent: true }),
+    N(38.5, 2, 12, 1.5, bend(1)),
+
+    /* --- 11-12 — released over the bar line ---------------------- */
+    // The tab writes the peak `(13)` at the head of the next measure: the bend
+    // is struck in one bar and comes down in the next.
+    N(40, 2, 12, 2.5, release(1)),
+    N(42.5, 2, 10, 1.5),
+    N(44.5, 2, 8, 0.5),
+    N(45, 2, 8, 3),
+
+    /* --- 13-14 — up to the top string ---------------------------- */
+    N(48.5, 2, 5, 0.25),
+    N(48.75, 2, 8, 0.25, hammer),
+    N(49, 2, 5, 1, pull),
+    N(51, 0, 13, 0.5),
+    N(51.5, 0, 15, 0.5),
+    // High E 15 is G. Over the Db underneath, that is the #11 — and it bends a
+    // half step to Ab, the 5, before falling back onto the sour note.
+    N(52, 0, 15, 3, { ...bend(1), accent: true }),
+    N(55, 0, 15, 0.5),
+    N(55.5, 0, 13, 0.5),
+
+    /* --- 15-16 — the shake, and a bend across the bar ------------ */
+    N(56, 0, 13, 2),
+    N(58, 1, 16, 1.5, vib),
+    N(59.5, 1, 13, 0.5),
+    // `16br(18)` with a long vibrato tail: bent, held, and let down across the
+    // bar line into the Eb. Four and a half bars off one struck note.
+    N(60, 1, 16, 2.5, { ...bend(2), accent: true }),
+    N(62.5, 1, 16, 5.5, release(2)),
+
+    /* --- 17-19 — the Eb turn, and the descent -------------------- */
+    // Bar 17 is that tail alone; the guitar does not strike again until 18.
+    N(70, 1, 16, 2, { ...bend(2), accent: true }),
+    N(72, 1, 16, 1, { ...bend(2), accent: true }),
+    N(73, 1, 16, 0.5),
+    N(73.5, 1, 13, 0.5),
+    N(74, 1, 11, 0.5),
+    N(74.5, 1, 13, 0.5),
+    N(75, 1, 11, 0.5),
+    N(75.5, 1, 13, 0.5, vib),
+
+    /* --- 20-22 — the fast run ------------------------------------ */
+    N(78.5, 1, 13, 1),
+    N(79.5, 1, 16, 0.5),
+    // The tab writes "fast" over this bar and nothing else about it. It is
+    // F-G-Eb-C-Bb-C-Bb: the top of the shape falling into the bottom of it.
+    N(80, 0, 13, 0.25, { accent: true }),
+    N(80.25, 0, 15, 0.25),
+    N(80.5, 1, 16, 0.5),
+    N(81, 1, 13, 0.25),
+    N(81.25, 2, 15, 0.25),
+    N(81.5, 1, 13, 0.25),
+    N(81.75, 2, 15, 0.25),
+    N(82, 1, 16, 0.75, bend(2)),
+    N(82.75, 1, 16, 0.75, bend(2)),
+    N(83.5, 1, 13, 3, vib),
+
+    /* --- 23-25 — the #11, and the pre-bend ----------------------- */
+    // `15br(16)` over Db: G bent to Ab and released. G against Db is the one
+    // note in the whole solo that sounds wrong, and it is in the scale.
+    N(88, 0, 15, 1.5, { ...bend(1), accent: true }),
+    N(89.5, 0, 15, 0.5, release(1)),
+    N(90, 0, 15, 0.75),
+    N(90.75, 0, 15, 0.5),
+    N(91.25, 0, 13, 0.25, pull),
+    N(91.5, 1, 16, 0.5),
+    N(92, 1, 16, 2.5, vib),
+    N(94.5, 1, 11, 1.5, { ...bend(2), accent: true }),
+    // `(11)pb13` — struck already bent, so the ear never hears it arrive.
+    N(96, 1, 11, 2.5, bend(2)),
+    N(98.5, 1, 11, 1.5, release(2)),
+
+    /* --- 26-27 — sixteenths, and the bend that holds -------------- */
+    N(100.5, 2, 13, 0.5),
+    N(101, 2, 13, 0.5, slide(12)),
+    N(101.5, 2, 12, 0.5),
+    N(102, 2, 10, 0.5),
+    N(102.5, 2, 12, 0.25),
+    N(102.75, 2, 12, 2.75, { ...bend(1), accent: true }),
+    N(105.5, 2, 12, 0.5, release(1)),
+    N(106, 2, 10, 0.5, pull),
+    N(106.5, 2, 10, 0.5),
+    N(106.5, 3, 13, 0.5),
+    N(107, 3, 13, 3.5, { ...bend(2), accent: true }),
+
+    /* --- 28 — answered low ---------------------------------------- */
+    N(110.5, 3, 3, 1.5),
+    N(110.5, 2, 1, 0.75),
+    N(111.25, 2, 3, 0.75),
+
+    /* --- 29-30 — the low bend figure ------------------------------ */
+    // G string 3 is Bb; the whole step takes it to C. Over the Ab that is the
+    // 2 pushed up to the 3, worked back and forth four times.
+    N(112, 2, 3, 0.75, { ...bend(2), accent: true }),
+    N(112.75, 2, 3, 0.75, release(2)),
+    N(113.5, 2, 3, 0.75, bend(2)),
+    N(114.25, 2, 3, 1, release(2)),
+    N(115.25, 2, 1, 0.5),
+    N(115.75, 2, 3, 0.25),
+    N(116, 2, 3, 1.25, { ...bend(2), accent: true }),
+    N(117.25, 2, 3, 2.25, bend(2)),
+    N(119.5, 2, 5, 0.25),
+    N(119.75, 2, 8, 0.25),
+
+    /* --- 31 — climbing, and the #11 again -------------------------- */
+    N(120, 2, 8, 0.5, slide(10)),
+    N(120.5, 2, 10, 1.5, vib),
+    N(122, 2, 10, 0.5, slide(12)),
+    N(122.5, 2, 12, 1.5),
+
+    /* --- 32-34 — the last climb ------------------------------------ */
+    N(124, 2, 13, 2, { accent: true }),
+    N(126, 2, 15, 2),
+    // A whole bar on one bent note: Bb pushed to C over the Ab, the 2 to the 3.
+    N(128, 2, 15, 4, { ...bend(2), accent: true }),
+    N(132, 2, 15, 1.75, slide(13)),
+    N(133.75, 2, 13, 2.25),
+
+    /* --- 35-36 — the pre-bend, and out ------------------------------ */
+    // `(10)pb12r(10)` — G string 10 is F; it is bent up to G with the pick
+    // still in the air, then released so the note appears to fall. Bent again,
+    // held over the bar line, and released a last time onto F, the root of the
+    // Fm the solo ends on. One note, a whole bar, nothing under it moving.
+    N(136.5, 2, 10, 1, bend(2)),
+    N(137.5, 2, 10, 0.5, release(2)),
+    N(138, 2, 10, 2, { ...bend(2), accent: true }),
+    N(140, 2, 10, 4, release(2)),
+  ],
+};
+
+/* ================================================================== */
+
+export const SEED_TABS = [
+  PURPLE_RAIN,
+  NOVEMBER_RAIN,
+  GENTLY_WEEPS,
+  ALONE,
+  CHOO_LO,
+  IN_ANY_TONGUE,
+  SLOW_DANCING,
+].map(normaliseSolo);
 
 /** Transcriptions entered for a given song in the library. */
 export const tabsForSong = (songId, list = SEED_TABS) =>

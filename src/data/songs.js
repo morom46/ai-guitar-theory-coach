@@ -315,6 +315,18 @@ export const SEED_SONGS = [
     T("OD 1", 7, 4, 5, 6, { d: ["Tape", 4, 480], r: ["Plate", 3] }, "Hiwatt + Muff · Strat neck", "Bends up to the 9th — F#m pent + the 9 (add extras). Slow hands, big vibrato."), { extras: [2, 9] }),
   S("n84", "Another Brick in the Wall Pt. 2 (solo)", "Pink Floyd", "Dm", "minorPent",
     T("Crunch", 5, 4, 2, 8, { d: ["Analogue", 3, 440] }, "Funky verse · LP neck solo", "Verse: tight muted clean funk. Solo: Dm pent, every phrase lands on a chord tone."), { extras: [2, 9] }),
+  // The song is in Cm; the solo vamp is not. It is Fm-Ab-Db-Ab with an Eb
+  // turn — Ab major — and the solo plays Db throughout, never a D natural.
+  // So the root moves for the solo section, which is what `sections` is for.
+  S("n88", "In Any Tongue", "David Gilmour", "Cm", "aeolian",
+    T("OD 1", 7, 4, 4, 6, { d: ["Tape", 3, 450], r: ["Hall", 5] }, "Hiwatt + Muff sustain · Strat", "Solo tone: the phrases are built out of four-beat bends, so the amp has to hold a bent note on its own — gain high enough to sustain, tone rolled back so the pinch harmonics in bars 1 and 3 speak without shrieking. Delay and a long hall do the swelling, not the gain."),
+    { sections: [
+      sec("n88a", "Verse / piano intro (Cm-Fm-G7)", "Cm", "aeolian", 8),
+      // The solo's own key. Fm is Cm's iv, and F aeolian is Ab major.
+      sec("n88b", "Solo — the low half (frets 1-13)", "Fm", "aeolian", 3),
+      // Bars 1-25 live at frets 15-18 on the B and high E strings.
+      sec("n88c", "Solo — the top (frets 13-18)", "Fm", "aeolian", 15),
+    ] }),
 ];
 
 /* ---------- storage + migration ---------- */

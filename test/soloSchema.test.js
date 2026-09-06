@@ -288,10 +288,16 @@ describe("harmonyLoop", () => {
     // song does NOT — Slow Dancing runs C#m7-E through the verses and lifts to
     // B-A for the chorus, which is a form, not a loop. Returning null there is
     // the right answer, not a miss.
+    //
+    // "Worth naming" is the thing to assert, and it is a ratio rather than a
+    // number: the loop has to be a real compression of the changes, not the
+    // change list with a shorter name. A flat cap of 8 was standing in for
+    // that until In Any Tongue arrived, whose vamp is genuinely nine — an
+    // eight-bar Fm-Ab-Db-Ab that adds an Eb turn every second time round.
     SEED_TABS.filter((t) => t.id !== "tab-slow-dancing").forEach((t) => {
       const l = harmonyLoop(t.harmony);
       expect(l, t.meta.title).toBeTruthy();
-      expect(l.length, t.meta.title).toBeLessThanOrEqual(8);
+      expect(l.length, t.meta.title).toBeLessThanOrEqual(t.harmony.length / 2);
     });
     const song = SEED_TABS.find((t) => t.id === "tab-slow-dancing");
     expect(harmonyLoop(song.harmony)).toBeNull();

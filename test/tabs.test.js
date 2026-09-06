@@ -406,3 +406,105 @@ describe("Choo Lo — the converted one", () => {
       .forEach((n) => expect(n.bendSemitones).toBe(2));
   });
 });
+
+describe("In Any Tongue — the one whose grid had to be proved", () => {
+  const tongue = SEED_TABS.find((t) => t.id === "tab-in-any-tongue");
+  const barOf = (n) => Math.floor(n.startBeat / 4) + 1;
+
+  it("puts every section where 102bpm says it goes, to within one bar", () => {
+    // The whole document rests on this. ASCII tab carries no rhythm, so the
+    // only thing saying "one drawn measure is one bar" is that the tab's ten
+    // printed timestamps agree with the measures actually drawn. Solo starts
+    // at 4:56; a 4/4 bar at 102bpm is 2.353s. If a measure had been silently
+    // dropped or doubled anywhere, the later marks would drift and this fails.
+    const SOLO_START = 4 * 60 + 56;
+    const secPerBar = (60 / 102) * 4;
+    expect(secPerBar).toBeCloseTo(2.353, 3);
+    tongue.sections.forEach((s) => {
+      const [m, sec] = s.name.split(" — ")[0].split(":").map(Number);
+      const predicted = SOLO_START + (s.startBeat / 4) * secPerBar;
+      expect(Math.abs(m * 60 + sec - predicted), s.name).toBeLessThan(secPerBar);
+    });
+    // Thirty-six bars, and the tab's last printed mark is on the last section.
+    expect(soloEndBeat(tongue)).toBe(144);
+    expect(tongue.sections.at(-1).name).toMatch(/^6:14 — /);
+  });
+
+  it("never leaves F natural minor — not even where the bends land", () => {
+    // meta.note's opening claim. F G Ab Bb C Db Eb, and nothing else. The
+    // bends matter as much as the frets: a bend is a note you cannot see on
+    // the fretboard, and one wrong semitone count would put an accidental in.
+    const F_MINOR = new Set([5, 7, 8, 10, 0, 1, 3]);
+    tongue.notes.forEach((n) => {
+      expect(F_MINOR.has(pc(n, tongue)), `${barOf(n)}: fret ${n.fret}`).toBe(true);
+      if (n.bendSemitones) {
+        const target = (noteMidi(n, tongue.meta) + n.bendSemitones) % 12;
+        expect(F_MINOR.has(target), `${barOf(n)}: bend target`).toBe(true);
+      }
+    });
+    // Which is F minor and NOT the Cm on the tab's header: the Db is played,
+    // the D natural that would make it C minor never is.
+    expect(new Set(tongue.notes.map((n) => pc(n, tongue))).has(1)).toBe(true);
+    expect(new Set(tongue.notes.map((n) => pc(n, tongue))).has(2)).toBe(false);
+  });
+
+  it("plays bar 1 and bar 3 identically and lets the band change their meaning", () => {
+    // The lesson the document leads with, asserted rather than asserted-at.
+    // Same string, same fret, same duration, same bend — twice.
+    const shape = (from) =>
+      tongue.notes
+        .filter((n) => n.startBeat >= from && n.startBeat < from + 4)
+        .map((n) => [n.startBeat - from, n.string, n.fret, n.durBeats, n.technique, n.bendSemitones]);
+    expect(shape(8)).toEqual(shape(0));
+    expect(shape(0)).toHaveLength(2);
+    // F over Fm is the root; the same F over Ab is the 6. The bends take it to
+    // the 2 and b3 in bar 1, and to the 7 and the root in bar 3.
+    const f = tongue.notes[0];
+    expect(pc(f, tongue)).toBe(5);
+    expect(degreeOf(f, tongue, 0).chordSym).toBe("Fm");
+    expect(degreeOf(f, tongue, 8).chordSym).toBe("Ab");
+    expect([degreeOf(f, tongue, 0).label, degreeOf(f, tongue, 8).label]).toEqual(["1", "6"]);
+  });
+
+  it("puts a #11 on the Db chord three times without leaving the scale", () => {
+    // G is the 2 of F minor and a plain scale tone. Over the Db it is the
+    // tritone, which is the only genuinely sour sound in thirty-six bars —
+    // the point being that the scale did not change, the chord did.
+    [52, 88, 122.5].forEach((beat) => {
+      const n = tongue.notes.find((x) => x.startBeat === beat);
+      expect(pc(n, tongue), `beat ${beat}`).toBe(7); // G
+      expect(degreeOf(n, tongue, beat).chordSym, `beat ${beat}`).toBe("Db");
+      expect(degreeOf(n, tongue, beat).label, `beat ${beat}`).toBe("b5");
+    });
+  });
+
+  it("ends on the root, arrived at by letting a bend down", () => {
+    const last = tongue.notes.at(-1);
+    expect(last.technique).toBe("release");
+    expect(last.startBeat).toBe(140);
+    expect(last.durBeats).toBe(4); // the whole last bar
+    expect(degreeOf(last, tongue, last.startBeat).label).toBe("1");
+    expect(degreeOf(last, tongue, last.startBeat).chordSym).toBe("Fm");
+  });
+
+  it("vamps a nine-chord loop, twice round", () => {
+    expect(harmonyLoopOf(tongue)).toEqual(["Fm", "Ab", "Db", "Ab", "Fm", "Ab", "Db", "Ab", "Eb"]);
+    expect(tongue.tempo[0].bpm).toBe(102);
+    expect(tongue.meta.tuningMidi).toEqual(STANDARD_TUNING);
+  });
+
+  it("leaves the piano out, and says so", () => {
+    // The tab writes the piano parts as guitar frets — an intro block, an
+    // outro block, and {} notes inside the solo. None of them are here, and a
+    // reader has to be able to find that out from the document itself.
+    expect(tongue.meta.source).toMatch(/piano staves it prints .* are not included/i);
+    // The three bars with no attack are vibrato and bend tails, not the gaps
+    // the excluded piano notes would have left: each is covered by a note held
+    // over from the bar before.
+    [8, 17, 22].forEach((b) => {
+      const start = (b - 1) * 4;
+      expect(tongue.notes.some((n) => n.startBeat >= start && n.startBeat < start + 4)).toBe(false);
+      expect(tongue.notes.some((n) => n.startBeat < start && n.startBeat + n.durBeats > start)).toBe(true);
+    });
+  });
+});
