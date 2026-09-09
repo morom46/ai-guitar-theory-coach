@@ -50,7 +50,9 @@ export function findVoicings(rootPc, qualityId, {
   maxFret = 14,
   minStrings = 4,
   limit = 6,
-  bass = "root", // "root" | "any"
+  // "root" keeps the root lowest, "any" allows inversions, and a pitch
+  // class pins one specific note in the bass (what a slash chord asks for).
+  bass = "root",
 } = {}) {
   const ch = CHORDS[qualityId];
   if (!ch) return [];
@@ -89,7 +91,8 @@ export function findVoicings(rootPc, qualityId, {
         // the bass note
         const bassIdx = last; // highest index = lowest string = lowest pitch
         const bassPc = norm(OPEN_MIDI[bassIdx] + frets[bassIdx]);
-        if (bass === "root" && bassPc !== rootPc) return;
+        if (typeof bass === "number") { if (bassPc !== norm(bass)) return; }
+        else if (bass === "root" && bassPc !== rootPc) return;
 
         const key = frets.join(",");
         if (seen.has(key)) return;
@@ -98,13 +101,19 @@ export function findVoicings(rootPc, qualityId, {
         const fing = fingering(frets);
         const midis = sounding.map((i) => OPEN_MIDI[i] + frets[i]).sort((a, b) => a - b);
         const opens = frets.filter((f) => f === 0).length;
+        // The lowest FRETTED fret, which is where the hand sits. Writing this
+        // as Math.min(...).concat([0]) made the guard the answer: every shape
+        // scored as if it were played at the nut, and the height term below
+        // did nothing at all.
+        const frettedAt = frets.filter((f) => f > 0);
+        const lowFret = frettedAt.length ? Math.min(...frettedAt) : 0;
         out.push({
           frets,
           midis,
           bassPc,
           rootPc,
           quality: qualityId,
-          position: Math.min(...frets.filter((f) => f)) || 0,
+          position: lowFret,
           strings: sounding.length,
           ...fing,
           // Lower is better: fingers cost, stretch costs, height on the neck
@@ -113,7 +122,7 @@ export function findVoicings(rootPc, qualityId, {
           cost:
             fing.fingers * 2 +
             (fing.span > 3 ? (fing.span - 3) * 3 : 0) +
-            Math.min(...frets.filter((f) => f > 0).concat([0])) * 0.15 +
+            lowFret * 0.15 +
             (6 - sounding.length) * 1.5 -
             opens * 1.2 -
             (fing.barre ? 0.5 : 0),

@@ -33,7 +33,7 @@ export const INTERVALS = [
   { name: "Minor 3rd", ab: "m3", feel: "Sad, soft" },
   { name: "Major 3rd", ab: "M3", feel: "Bright, happy" },
   { name: "Perfect 4th", ab: "P4", feel: "Open, stable" },
-  { name: "Tritone", ab: "TT", feel: "Unstable — the centre" },
+  { name: "Tritone", ab: "TT", feel: "Unstable: the centre" },
   { name: "Perfect 5th", ab: "P5", feel: "Strong, hollow" },
   { name: "Minor 6th", ab: "m6", feel: "Yearning" },
   { name: "Major 6th", ab: "M6", feel: "Sweet, warm" },
@@ -42,7 +42,7 @@ export const INTERVALS = [
   { name: "Perfect Octave", ab: "P8", feel: "Same note, higher" },
   // Past the octave — the same pitch classes, but a 9th is not a 2nd: it is
   // stacked ABOVE the 7th, which is the whole point of an extended chord.
-  { name: "Minor 9th", ab: "b9", feel: "Grinding — the altered dominant" },
+  { name: "Minor 9th", ab: "b9", feel: "Grinding: the altered dominant" },
   { name: "Major 9th", ab: "9", feel: "Open, airy" },
   { name: "Augmented 9th", ab: "#9", feel: "The Hendrix crunch" },
   { name: "Major 10th", ab: "10", feel: "The 3rd, spread wide" },
@@ -50,7 +50,7 @@ export const INTERVALS = [
   { name: "Augmented 11th", ab: "#11", feel: "Lydian shimmer" },
   { name: "Perfect 12th", ab: "12", feel: "The 5th, an octave up" },
   { name: "Minor 13th", ab: "b13", feel: "Dark, altered" },
-  { name: "Major 13th", ab: "13", feel: "Lush — the scale, played vertically" },
+  { name: "Major 13th", ab: "13", feel: "Lush: the scale, played vertically" },
 ];
 
 export const SCALES = {
@@ -68,10 +68,10 @@ export const SCALES = {
   // through Song Practice's `extras` mechanism rather than being a real scale.
   blues: { name: "Blues", ints: [0, 3, 5, 6, 7, 10], formula: "Minor pentatonic + b5" },
   melodicMinor: { name: "Melodic Minor", ints: [0, 2, 3, 5, 7, 9, 11], formula: "Minor with a MAJOR 6 and 7" },
-  lydianDom: { name: "Lydian Dominant", ints: [0, 2, 4, 6, 7, 9, 10], formula: "Mixolydian with a #4 — melodic minor's 4th mode" },
-  altered: { name: "Altered (Super Locrian)", ints: [0, 1, 3, 4, 6, 8, 10], formula: "Every tension bent — melodic minor's 7th mode" },
+  lydianDom: { name: "Lydian Dominant", ints: [0, 2, 4, 6, 7, 9, 10], formula: "Mixolydian with a #4: melodic minor's 4th mode" },
+  altered: { name: "Altered (Super Locrian)", ints: [0, 1, 3, 4, 6, 8, 10], formula: "Every tension bent: melodic minor's 7th mode" },
   harmonicMajor: { name: "Harmonic Major", ints: [0, 2, 4, 5, 7, 8, 11], formula: "Major with a b6" },
-  wholeHalfDim: { name: "Diminished (whole-half)", ints: [0, 2, 3, 5, 6, 8, 9, 11], formula: "W–H repeating — eight notes, no home" },
+  wholeHalfDim: { name: "Diminished (whole-half)", ints: [0, 2, 3, 5, 6, 8, 9, 11], formula: "W–H repeating: eight notes, no home" },
 };
 
 export const CHORDS = {
@@ -83,7 +83,7 @@ export const CHORDS = {
   dom7: { name: "Dominant 7", sym: "7", ints: [0, 4, 7, 10], labels: ["1", "3", "5", "b7"], formula: "1-3-5 + m7" },
   min7: { name: "Minor 7", sym: "m7", ints: [0, 3, 7, 10], labels: ["1", "b3", "5", "b7"], formula: "1-b3-5 + m7" },
   m7b5: { name: "Half-Diminished", sym: "m7♭5", ints: [0, 3, 6, 10], labels: ["1", "b3", "b5", "b7"], formula: "1-b3-b5 + m7" },
-  dim7: { name: "Diminished 7", sym: "°7", ints: [0, 3, 6, 9], labels: ["1", "b3", "b5", "bb7"], formula: "m3 + m3 + m3 — perfectly symmetrical" },
+  dim7: { name: "Diminished 7", sym: "°7", ints: [0, 3, 6, 9], labels: ["1", "b3", "b5", "bb7"], formula: "m3 + m3 + m3, perfectly symmetrical" },
   // Suspensions: the 3rd is REPLACED, not added — so nothing decides major or minor.
   sus2: { name: "Suspended 2", sym: "sus2", ints: [0, 2, 7], labels: ["1", "2", "5"], formula: "The 3rd swapped for the 2" },
   sus4: { name: "Suspended 4", sym: "sus4", ints: [0, 5, 7], labels: ["1", "4", "5"], formula: "The 3rd swapped for the 4" },
@@ -123,13 +123,13 @@ export const CHORD_FAMILY = {
  * re-derive it from the scale; `quality` is a key into CHORDS.
  */
 export const DIATONIC = [
-  { rn: "I", q: "Maj", quality: "maj", semis: 0, fn: "T", why: "home — nothing is pulling" },
+  { rn: "I", q: "Maj", quality: "maj", semis: 0, fn: "T", why: "home, nothing is pulling" },
   { rn: "ii", q: "min", quality: "min", semis: 2, fn: "S", why: "the classic run-up to V" },
   { rn: "iii", q: "min", quality: "min", semis: 4, fn: "T", why: "a soft stand-in for I" },
   { rn: "IV", q: "Maj", quality: "maj", semis: 5, fn: "S", why: "one step away from home" },
-  { rn: "V", q: "Maj", quality: "maj", semis: 7, fn: "D", why: "carries the key's 7 — pulls hardest" },
-  { rn: "vi", q: "min", quality: "min", semis: 9, fn: "T", why: "the relative minor — home, in the shade" },
-  { rn: "vii°", q: "dim", quality: "dim", semis: 11, fn: "D", why: "V7 without its root — pure tension" },
+  { rn: "V", q: "Maj", quality: "maj", semis: 7, fn: "D", why: "carries the key's 7, pulls hardest" },
+  { rn: "vi", q: "min", quality: "min", semis: 9, fn: "T", why: "the relative minor: home, in the shade" },
+  { rn: "vii°", q: "dim", quality: "dim", semis: 11, fn: "D", why: "V7 without its root: pure tension" },
 ];
 
 /**
@@ -144,17 +144,17 @@ export const DIATONIC = [
  * minor-key song actually plays.
  */
 export const DIATONIC_MINOR = [
-  { rn: "i", q: "min", quality: "min", semis: 0, fn: "T", why: "home — the minor tonic" },
-  { rn: "ii°", q: "dim", quality: "dim", semis: 2, fn: "S", why: "unstable — usually passing through to v" },
-  { rn: "bIII", q: "Maj", quality: "maj", semis: 3, fn: "T", why: "the relative major — home, in daylight" },
+  { rn: "i", q: "min", quality: "min", semis: 0, fn: "T", why: "home: the minor tonic" },
+  { rn: "ii°", q: "dim", quality: "dim", semis: 2, fn: "S", why: "unstable, usually passing through to v" },
+  { rn: "bIII", q: "Maj", quality: "maj", semis: 3, fn: "T", why: "the relative major: home, in daylight" },
   { rn: "iv", q: "min", quality: "min", semis: 5, fn: "S", why: "the minor-key departure" },
-  { rn: "v", q: "min", quality: "min", semis: 7, fn: "D", why: "minor — no leading tone, so it hardly pulls" },
+  { rn: "v", q: "min", quality: "min", semis: 7, fn: "D", why: "minor, with no leading tone, so it hardly pulls" },
   { rn: "bVI", q: "Maj", quality: "maj", semis: 8, fn: "S", why: "the big cinematic one" },
-  { rn: "bVII", q: "Maj", quality: "maj", semis: 10, fn: "D", why: "rock's favourite — falls to i with no leading tone" },
+  { rn: "bVII", q: "Maj", quality: "maj", semis: 10, fn: "D", why: "rock's favourite: falls to i with no leading tone" },
 ];
 
 /** Harmonic minor's V: raise the 7 and the minor key gets its pull back. */
-export const MINOR_V7 = { rn: "V7", q: "Maj", quality: "dom7", semis: 7, fn: "D", why: "the raised 7 — borrowed from harmonic minor" };
+export const MINOR_V7 = { rn: "V7", q: "Maj", quality: "dom7", semis: 7, fn: "D", why: "the raised 7, borrowed from harmonic minor" };
 
 /** The two key flavours every page can offer, pointing at their own maps. */
 export const KEY_MODES = {
@@ -165,7 +165,7 @@ export const KEY_MODES = {
 export const FUNCTION_NAME = { T: "Tonic", S: "Subdominant", D: "Dominant" };
 export const FUNCTION_BLURB = {
   T: "Home. Rest. Nothing is asking to move.",
-  S: "Departure — away from home, but not yet unstable.",
+  S: "Departure: away from home, but not yet unstable.",
   D: "Tension. It contains the key's leading tone and wants to fall back to the tonic.",
 };
 

@@ -348,6 +348,45 @@ async function main() {
   await shot(page, "sequences");
 
 
+  /* ---------- 2b. the chart on a song ---------- */
+  results.push("\nSONG CHARTS");
+
+  await page.getByRole("button", { name: "Songs & Tones", exact: true }).first().click();
+  await page.waitForTimeout(350);
+  await page.getByPlaceholder(/search song/).fill("Wonderwall");
+  await page.waitForTimeout(250);
+  await page.getByRole("button", { name: /^Wonderwall/ }).first().click();
+  await page.waitForTimeout(450);
+
+  const chartBoxes = await page.locator(".song-chords .cd-box").count();
+  const chart = await page.locator(".song-chords").innerText();
+  if (chartBoxes >= 4) ok(`${chartBoxes} chord shapes drawn for the song`, chart.split("\n")[0]);
+  else bad("song chart", `only ${chartBoxes} chord box(es)`);
+
+  // Wonderwall is played capo 2 with Em shapes, and it SOUNDS in F# minor.
+  // Both facts have to be on the page or the boxes are lying about the song.
+  const chordsHead = await page.locator(".page").innerText();
+  if (/CAPO 2/.test(chordsHead)) ok("the capo the record used is on the page", "CAPO 2");
+  else bad("capo", "no capo pill for Wonderwall");
+  if (/Em7/.test(chart) && /sounds F#m7/.test(chart))
+    ok("the box is the grip you hold, the caption is what it sounds like", "Em7 grip · sounds F#m7");
+  else bad("capo transposition", chart.replace(/\n/g, " ").slice(0, 90));
+
+  // Without a capo the box and the chord are the same thing, and the caption
+  // becomes the Nashville number the whole app is built around.
+  await page.getByPlaceholder(/search song/).fill("Let It Be");
+  await page.waitForTimeout(250);
+  await page.getByRole("button", { name: /^Let It Be/ }).first().click();
+  await page.waitForTimeout(450);
+  const letItBe = await page.locator(".song-chords").innerText().catch(() => "");
+  const numbers = letItBe.split("\n").filter((l) => /^(1|4|5|6m)$/.test(l.trim()));
+  if (numbers.join(" ") === "1 5 6m 4") ok("C-G-Am-F is numbered 1-5-6m-4", numbers.join("-"));
+  else bad("Nashville numbers", numbers.join(",") || letItBe.replace(/\n/g, " ").slice(0, 80));
+  await page.getByPlaceholder(/search song/).fill("");
+  await page.waitForTimeout(200);
+  await shot(page, "song-chart");
+
+
   /* ---------- 3. the metronome ---------- */
   results.push("\nMETRONOME");
   const tp = page.locator(".tp");

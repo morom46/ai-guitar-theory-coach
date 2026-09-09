@@ -220,8 +220,24 @@ name the number). Multiple choice, score/accuracy/streak, best streak in `et.bes
 
 ### Song Practice (`SongPractice.jsx`) — 🎵, fully offline
 Local song library (localStorage `songs.v1`, seeded). Each song = `{title, artist, root,
-minor, scaleId, extras[], sections?}`. Shows the key's scale on a 24-fret neck (role/🌈
-colours, ▢ box). **Sections:** optional `sections:[{name, root, scaleId, pos}]` (Stairway
+minor, scaleId, extras[], chords?, capo?, tuning?, sections?}`. Shows the key's scale on a
+24-fret neck (role/🌈 colours, ▢ box).
+
+**Chords panel:** the chart the song is built from, one solved grip per chord, sitting
+between the neck and the amp. `chords` is a list of SOUNDING chord symbols written the way
+you would on paper (`["Am", "C/G", "D/F#", "Fmaj7"]`); `capo` is the fret the original
+capos at and `tuning` the semitones the record is detuned by, and the grip drawn in each
+box is the chord transposed by both. So Wonderwall stores F#m7 A Esus4 B7sus4 with capo 2
+and draws Em7 G Dsus4 Asus4, captioned with what each one sounds like. Under every box is
+the chord's Nashville number in the key, and a violet ◆ on anything from outside it.
+Shapes come from `theory/voicings.js`, the same solver the Chord Builder uses, so a box
+cannot disagree with the chord it claims to be; symbols are read and written by
+`theory/chordSymbol.js`. 111 of the 148 seeded songs ship a chart; the rest offer a "✎
+chords" editor (and a one-click fill from the seven chords of the key) that saves into the
+song. A section may carry its own `chords` when the solo vamp is not the song's
+progression, which is what In Any Tongue and Choo Lo do.
+
+**Sections:** optional `sections:[{name, root, scaleId, pos, chords?}]` (Stairway
 & Sweet Child seeded); section chips re-light the neck per part, each part's home box glows
 sun-dashed. **▦ tabs ↔ ▤ stack** toggle: one big neck per active section, or stacked mini
 necks (one per section, inactive ones dimmed). "＋ split into sections" bootstraps

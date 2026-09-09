@@ -75,6 +75,13 @@ An offline, local song library that maps your real repertoire onto the fretboard
 
 - Each song stores a **key + base soloing scale** (minor pent, major pent, Aeolian,
   Dorian, Mixolydian, …); the neck lights those notes.
+- **The chords the song is built from**, drawn as chord boxes under the neck, with the
+  **capo** the original used. A song stores the chords it *sounds*; the box shows the
+  grip your hand actually holds once the capo (and any detuning) is accounted for, so
+  Wonderwall reads "Em7, capo 2, sounds F♯m7". Under each box is the chord's Nashville
+  number in the key, and a ◆ on anything borrowed from outside it. Tap a box to strum
+  it at sounding pitch. Shapes are solved, not looked up, so they cannot disagree with
+  the chord they claim to be. Charts are editable and saved with the song.
 - **Vocabulary panel** — toggle individual in-between notes (blue notes, passing
   tones, mode colours) with a tip explaining what each one adds to your phrasing.
 - **Fretboard position box** — drag to focus any 4-fret window on the neck.
@@ -331,6 +338,7 @@ src/
   theory/engine.js                  the single theory engine — pitch classes,
                                     intervals, scales, chords, enharmonic
                                     spelling, MIDI/frequency math
+  theory/chordSymbol.js             chord symbols read and written ("F#m7/C#")
   audio/engine.js                   one AudioContext for the whole app
   audio/clock.js                    the metronome's lookahead scheduler
   audio/soloClock.js                ✦ the solo sequencer — same discipline

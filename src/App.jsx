@@ -17,25 +17,25 @@ const NAV = [
   {
     group: "Learn",
     items: [
-      { id: "theory", ic: "📖", label: "Theory", title: "The Theory Manual — the whole map, explained & heard" },
-      { id: "decoder", ic: "01", num: true, label: "Decoder", title: "01 · Fretboard Decoder — notes, intervals, scales, modes" },
-      { id: "chord", ic: "02", num: true, label: "Chords", title: "02 · Chord Builder — thirds stacked out of a scale" },
-      { id: "numbers", ic: "03", num: true, label: "Numbers", title: "03 · Number System — think in numbers, play in every key" },
-      { id: "scales", ic: "04", num: true, label: "Scales", title: "04 · The Scale Lab — relative vs parallel, why pentatonic works, formulas, interval shapes" },
+      { id: "theory", ic: "📖", label: "Theory", title: "The Theory Manual · the whole map, explained & heard" },
+      { id: "decoder", ic: "01", num: true, label: "Decoder", title: "01 · Fretboard Decoder · notes, intervals, scales, modes" },
+      { id: "chord", ic: "02", num: true, label: "Chords", title: "02 · Chord Builder · thirds stacked out of a scale" },
+      { id: "numbers", ic: "03", num: true, label: "Numbers", title: "03 · Number System · think in numbers, play in every key" },
+      { id: "scales", ic: "04", num: true, label: "Scales", title: "04 · The Scale Lab · relative vs parallel, why pentatonic works, formulas, interval shapes" },
     ],
   },
   {
     group: "Play",
     items: [
-      { id: "solo", ic: "✦", label: "Solo", title: "Solo Player — a solo played back on the neck, coloured by what each note does" },
-      { id: "songs", ic: "🎵", label: "Songs & Tones", title: "Songs & Tones — what to play + your Blackstar settings, per song" },
+      { id: "solo", ic: "✦", label: "Solo", title: "Solo Player · a solo played back on the neck, coloured by what each note does" },
+      { id: "songs", ic: "🎵", label: "Songs & Tones", title: "Songs & Tones · what to play + your Blackstar settings, per song" },
     ],
   },
   {
     group: "Tools",
     items: [
-      { id: "ear", ic: "🎧", label: "Ear", title: "Ear Trainer — listen & identify" },
-      { id: "listen", ic: "🎤", label: "Listen", title: "Listen — tuner, and drills the app checks by ear (uses your microphone)" },
+      { id: "ear", ic: "🎧", label: "Ear", title: "Ear Trainer · listen & identify" },
+      { id: "listen", ic: "🎤", label: "Listen", title: "Listen · tuner, and drills the app checks by ear (uses your microphone)" },
     ],
   },
 ];
@@ -114,7 +114,7 @@ export default function App() {
         <main className="shell-main">{render()}</main>
 
         <footer className="shell-foot">
-          One theory engine drives everything — every section consumes the same
+          One theory engine drives everything: every section consumes the same
           primitives from src/theory/engine.js.
         </footer>
 
